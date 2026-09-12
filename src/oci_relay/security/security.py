@@ -32,7 +32,7 @@ def get_ssh_failures(hours=24):
         )
         if result.returncode == 0:
             lines = result.stdout.split('\n')
-            failed = [l for l in lines if 'Failed password' in l]
+            failed = [ln for ln in lines if 'Failed password' in ln]
             return {'total': len(failed), 'lines': failed[:50]}
         return {'total': 0}
     except Exception as e:

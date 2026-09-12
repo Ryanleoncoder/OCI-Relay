@@ -26,17 +26,18 @@ def get_containers():
         if client is None:
             return {"error": _DAEMON_OFF}
         containers = []
-        
+
         for c in client.containers.list(all=True):
             containers.append({
                 'id': c.short_id,
                 'name': c.name,
                 'status': c.status,
                 'image': c.image.tags[0] if c.image.tags else 'none',
-                'uptime': c.attrs['State']['Status'] == 'running' and c.attrs['State'].get('StartedAt', ''),
+                'uptime': (c.attrs['State']['Status'] == 'running'
+                           and c.attrs['State'].get('StartedAt', '')),
                 'restart_count': c.attrs['RestartCount']
             })
-        
+
         return containers
     except Exception as e:
         return {'error': str(e)}
@@ -45,7 +46,7 @@ def get_containers():
 def get_container_stats(name):
     if not DOCKER_AVAILABLE:
         return {"error": "Docker SDK não instalado"}
-    
+
     try:
         client = _connect()
         if client is None:
@@ -60,7 +61,7 @@ def get_container_stats(name):
 def get_container_logs(name, tail=50):
     if not DOCKER_AVAILABLE:
         return {"error": "Docker SDK não instalado"}
-    
+
     try:
         client = _connect()
         if client is None:

@@ -1,0 +1,23 @@
+[flake8]
+# 88 é a largura do Black, que já é a dependência de formatação do projeto.
+# O padrão do flake8 (79) vem do PEP 8 original e brigaria com ele.
+max-line-length = 88
+
+exclude =
+    .git,
+    .venv,
+    __pycache__,
+    build,
+    dist,
+    *.egg-info
+
+# E128: indentação de continuação. Conflita com o estilo de quebra usado
+#       aqui, onde argumentos alinham por legibilidade e não pela coluna
+#       do parêntese.
+# W503: quebra de linha antes de operador binário — a recomendação do PEP 8
+#       mudou, e a regra contradiz a W504.
+extend-ignore = E128, W503
+
+per-file-ignores =
+    # Testes descrevem cenários; nomes longos valem mais que colunas curtas.
+    tests/*:E501

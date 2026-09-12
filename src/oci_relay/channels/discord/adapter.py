@@ -19,7 +19,7 @@ def _chunk_discord(text: str) -> list[str]:
         return []
     if len(text) <= _MAX_MESSAGE_LENGTH:
         return [text]
-    
+
     pedacos = []
     atual = ""
     for linha in text.split("\n"):
@@ -38,9 +38,9 @@ def _chunk_discord(text: str) -> list[str]:
 async def _send_discord_message(token: str, channel_id: str, content: str) -> bool:
     """Envia mensagem para Discord via API."""
     url = f"https://discord.com/api/v10/channels/{channel_id}/messages"
-    
+
     payload = {"content": content}
-    
+
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
@@ -63,7 +63,7 @@ async def send_discord_message(token: str, channel_id: str, content: str) -> boo
     if not token or not channel_id:
         logger.warning("Discord token ou channel_id não configurado.")
         return False
-    
+
     for pedaco in _chunk_discord(content):
         for attempt in range(3):
             if await _send_discord_message(token, channel_id, pedaco):
@@ -82,10 +82,11 @@ async def send_discord_alert(content: str) -> bool:
         return False
 
     payload = {"content": content[:2000]}
-    
+
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(settings.discord_webhook, json=payload, timeout=10.0)
+            resp = await client.post(
+                settings.discord_webhook, json=payload, timeout=10.0)
             return resp.status_code in (200, 204)
     except Exception as e:
         logger.error("Erro ao enviar alerta para Discord: %s", e)

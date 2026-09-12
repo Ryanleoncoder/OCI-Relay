@@ -80,7 +80,7 @@ class TestTabela:
     def test_alinha_rotulos(self):
         saida = fmt.tabela([("CPU", "1%"), ("Memory", "2%")])
         assert "```" in saida
-        linhas = [l for l in saida.split("\n") if l and "```" not in l]
+        linhas = [ln for ln in saida.split("\n") if ln and "```" not in ln]
         # Os valores começam na mesma coluna.
         assert linhas[0].index("1%") == linhas[1].index("2%")
 
