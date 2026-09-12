@@ -33,7 +33,8 @@ async def _bloco_oci() -> tuple[list[str], str]:
     ], emoji)
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia resumo rápido do sistema."""
     from ..adapter import tg_send_text
 

@@ -7,7 +7,8 @@ from ....system import get_memory, get_top_processes_by_memory
 from .. import formatter as fmt
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia detalhamento de memória."""
     from ..adapter import tg_send_text
 

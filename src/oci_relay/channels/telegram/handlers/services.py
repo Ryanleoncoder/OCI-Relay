@@ -10,7 +10,8 @@ from .. import formatter as fmt
 _LIMITE_LISTAGEM = 30
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia serviços críticos, unidades em falha e serviços em execução."""
     from ..adapter import tg_send_text
 

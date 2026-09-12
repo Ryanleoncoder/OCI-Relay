@@ -20,7 +20,8 @@ _TEXTO_STATUS = {
 }
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia status do Fail2Ban."""
     from ..adapter import tg_send_text
 

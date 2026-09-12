@@ -101,7 +101,8 @@ async def _painel_local(client, token: str, chat_id: int):
     await tg_send_text(client, token, chat_id, "\n".join(partes))
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia saúde da VPS, ou do host local se a OCI não estiver configurada."""
     from ..adapter import tg_send_text
 

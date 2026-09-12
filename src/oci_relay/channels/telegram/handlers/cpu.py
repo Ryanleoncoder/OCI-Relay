@@ -7,7 +7,8 @@ from ....system import get_cpu_usage, get_top_processes
 from .. import formatter as fmt
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia detalhamento de CPU."""
     from ..adapter import tg_send_text
 

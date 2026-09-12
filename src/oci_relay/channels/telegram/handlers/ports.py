@@ -6,7 +6,8 @@ from ....security import get_listening_ports_summary, identificacao_limitada
 from .. import formatter as fmt
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia portas em escuta, destacando as públicas."""
     from ..adapter import tg_send_text
 

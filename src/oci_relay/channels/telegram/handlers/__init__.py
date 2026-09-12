@@ -1,5 +1,6 @@
-"""Handlers de comandos."""
+"""Handlers de comandos.
 
-from . import summary, status, health, cpu, memory, disk, docker, security, services, ports, fail2ban, sessions, alerts, watch, suspender, reiniciar
-
-__all__ = ["summary", "status", "health", "cpu", "memory", "disk", "docker", "security", "services", "ports", "fail2ban", "sessions", "alerts", "watch", "suspender", "reiniciar"]
+Os módulos não são enumerados aqui: `from .handlers import health` importa
+o submódulo por conta própria. A lista de comandos vive em
+`channels/telegram/registry.py`.
+"""

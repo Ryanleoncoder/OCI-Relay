@@ -17,7 +17,8 @@ _EMOJI_F2B = {
 }
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia dashboard de segurança."""
     from ..adapter import tg_send_text
 

@@ -6,7 +6,8 @@ from ....oci import network
 from .. import formatter as fmt
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia a configuração de rede da instância vista pela OCI."""
     from ..adapter import tg_send_text
 

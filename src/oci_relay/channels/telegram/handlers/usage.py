@@ -25,7 +25,8 @@ def _moeda(valor: float, moeda: str) -> str:
     return f"{moeda} {valor:.2f}" if valor >= 0.01 else f"{moeda} {valor:.4f}"
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia o custo reportado da tenancy no mês corrente."""
     from ..adapter import tg_send_text
 

@@ -8,7 +8,8 @@ from .. import formatter as fmt
 _QUANTOS = 8
 
 
-async def handle(client, token: str, chat_id: int):
+async def handle(client, token: str, chat_id: int,
+                 actor_id: int | None = None):
     """Envia os processos que mais consomem CPU e memória."""
     from ..adapter import tg_send_text
 
