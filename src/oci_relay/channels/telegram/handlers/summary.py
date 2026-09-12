@@ -5,6 +5,7 @@ import asyncio
 import oci
 
 from ....config.settings import settings
+from ....i18n import t
 from ....oci import compute
 from ....system import get_health
 from .. import formatter as fmt
@@ -12,29 +13,33 @@ from .. import formatter as fmt
 
 async def _bloco_oci() -> tuple[list[str], str]:
     """Bloco OCI do resumo e seu emoji; degrada se a OCI estiver inacessível."""
+    cabecalho = fmt.secao(t("summary.oci"))
+
     try:
         status = await compute.get_instance_status()
     except oci.exceptions.ServiceError as e:
-        return ([fmt.secao("OCI"), f"{fmt.CRITICO} HTTP {e.status} — {e.message}"],
-                fmt.CRITICO)
+        return ([cabecalho, f"{fmt.CRITICO} " + t(
+            "errors.oci_refused", status=e.status, message=e.message)],
+            fmt.CRITICO)
     except Exception as e:
-        return ([fmt.secao("OCI"), f"{fmt.NEUTRO} indisponível ({e})"], fmt.NEUTRO)
+        return ([cabecalho, f"{fmt.NEUTRO} " + t(
+            "errors.oci_unavailable", reason=e)], fmt.NEUTRO)
 
     emoji = fmt.emoji_estado_oci(status.state)
     return ([
-        fmt.secao("OCI"),
+        cabecalho,
         fmt.tabela([
-            ("Name", status.display_name or "n/d"),
-            ("State", f"{emoji} {status.state}"),
-            ("Shape", status.shape or "n/d"),
-            ("OCPU", fmt.gb(status.ocpus)),
-            ("Memory", f"{fmt.gb(status.memory_gb)} GB"),
+            (t("instance.name"), status.display_name or "n/d"),
+            (t("instance.state"), f"{emoji} {status.state}"),
+            (t("instance.shape"), status.shape or "n/d"),
+            (t("instance.ocpu"), fmt.gb(status.ocpus)),
+            (t("instance.memory"), f"{fmt.gb(status.memory_gb)} GB"),
         ]),
     ], emoji)
 
 
 async def handle(client, token: str, chat_id: int,
-                 actor_id: int | None = None):
+                 actor_id: int | None = None, args: str = ""):
     """Envia resumo rápido do sistema."""
     from ..adapter import tg_send_text
 
@@ -57,22 +62,24 @@ async def handle(client, token: str, chat_id: int,
             disk["percent"], settings.alert_disk_warning_percent,
             settings.alert_disk_critical_percent)
 
-        partes = [fmt.titulo("☁️", "OCI Relay"), ""]
+        partes = [fmt.cabecalho(t("summary.title")), ""]
         partes += linhas_oci
         partes += [
-            fmt.secao("Resources"),
+            fmt.secao(t("summary.resources")),
             fmt.tabela([
-                ("Uptime", fmt.uptime(health["uptime_seconds"])),
-                ("CPU", f"{e_cpu} {cpu['percent']}%"),
-                ("RAM", f"{e_mem} {fmt.gb(mem['used_gb'])} / "
-                        f"{fmt.gb(mem['total_gb'])} GB"),
-                ("Disk", f"{e_disk} {fmt.gb(disk['used_gb'])} / "
-                         f"{fmt.gb(disk['total_gb'])} GB"),
-                ("Load", fmt.carga(cpu["load_avg"])),
+                (t("summary.uptime"), fmt.uptime(health["uptime_seconds"])),
+                (t("summary.cpu"), f"{e_cpu} {cpu['percent']}%"),
+                (t("summary.ram"), f"{e_mem} {fmt.gb(mem['used_gb'])} / "
+                                   f"{fmt.gb(mem['total_gb'])} GB"),
+                (t("summary.disk"), f"{e_disk} {fmt.gb(disk['used_gb'])} / "
+                                    f"{fmt.gb(disk['total_gb'])} GB"),
+                (t("summary.load"), fmt.carga(cpu["load_avg"])),
             ]),
-            f"Overall: {fmt.veredito(e_oci, e_cpu, e_mem, e_disk)}",
+            f"{t('common.overall')}: "
+            f"{fmt.veredito(e_oci, e_cpu, e_mem, e_disk)}",
         ]
 
         await tg_send_text(client, token, chat_id, "\n".join(partes))
     except Exception as e:
-        await tg_send_text(client, token, chat_id, f"Erro ao obter resumo: {e}")
+        await tg_send_text(client, token, chat_id,
+            t("summary.error", reason=e))

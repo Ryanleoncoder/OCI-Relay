@@ -2,6 +2,7 @@
 
 import asyncio
 
+from ....i18n import t
 from ....security import get_fail2ban_status
 from .. import formatter as fmt
 
@@ -12,16 +13,16 @@ _EMOJI_STATUS = {
     "error": fmt.CRITICO,
 }
 
-_TEXTO_STATUS = {
-    "active": "active",
-    "inactive": "inactive",
-    "not_installed": "não instalado neste host",
-    "error": "erro ao consultar",
+_CHAVE_STATUS = {
+    "active": "fail2ban.active",
+    "inactive": "fail2ban.inactive",
+    "not_installed": "fail2ban.not_installed",
+    "error": "fail2ban.error",
 }
 
 
 async def handle(client, token: str, chat_id: int,
-                 actor_id: int | None = None):
+                 actor_id: int | None = None, args: str = ""):
     """Envia status do Fail2Ban."""
     from ..adapter import tg_send_text
 
@@ -29,16 +30,17 @@ async def handle(client, token: str, chat_id: int,
         f2b = await asyncio.to_thread(get_fail2ban_status)
         status = f2b.get("status", "error")
         emoji = _EMOJI_STATUS.get(status, fmt.NEUTRO)
+        rotulo = t(_CHAVE_STATUS.get(status, "fail2ban.error"))
 
         partes = [
-            fmt.titulo("🛡️", "Fail2Ban"),
+            fmt.cabecalho(t("fail2ban.title")),
             "",
-            f"Service: {emoji} {_TEXTO_STATUS.get(status, status)}",
+            f"{t('fail2ban.service')}: {emoji} {rotulo}",
         ]
 
         saida = (f2b.get("output") or "").strip()
         if saida:
-            partes.append(fmt.secao("Jails"))
+            partes.append(fmt.secao(t("fail2ban.jails")))
             partes.append(fmt.bloco(saida.split("\n")[:12]))
 
         erro = (f2b.get("error") or "").strip()
@@ -47,4 +49,5 @@ async def handle(client, token: str, chat_id: int,
 
         await tg_send_text(client, token, chat_id, "\n".join(partes))
     except Exception as e:
-        await tg_send_text(client, token, chat_id, f"Erro ao obter Fail2Ban: {e}")
+        await tg_send_text(client, token, chat_id,
+            t("errors.generic", subject="Fail2Ban", reason=e))

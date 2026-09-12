@@ -28,11 +28,41 @@ class TestFonteUnica:
             assert registry.buscar(entrada["command"]) is not None
 
     def test_tudo_que_e_roteavel_aparece(self):
-        """O caminho inverso: comando que responde precisa ser descobrível."""
+        """O caminho inverso: comando que responde precisa ser descobrível.
+
+        Apelidos são a exceção deliberada: existem para não quebrar quem
+        digita o nome antigo, e anunciá-los duplicaria o menu.
+        """
         visiveis = {c.nome for c in registry.visiveis()}
+        apelidos = {a for c in registry.COMANDOS for a in c.apelidos}
+
         for nome, comando in registry.POR_NOME.items():
-            if not comando.oculto:
-                assert nome in visiveis
+            if comando.oculto or nome in apelidos:
+                continue
+            assert nome in visiveis
+
+
+class TestApelidos:
+    @pytest.mark.parametrize("antigo,novo", [
+        ("suspender", "stop"),
+        ("reiniciar", "restart"),
+        ("reativar", "poweron"),
+    ])
+    def test_nome_antigo_continua_respondendo(self, antigo, novo):
+        assert registry.buscar(antigo) is registry.buscar(novo)
+
+    def test_apelido_nao_aparece_no_menu(self):
+        """Menu duplicado confunde; o apelido serve só à memória muscular."""
+        menu = {c["command"] for c in registry.para_telegram()}
+        for comando in registry.COMANDOS:
+            for apelido in comando.apelidos:
+                assert apelido not in menu
+
+    def test_apelido_nao_colide_com_comando(self):
+        nomes = {c.nome for c in registry.COMANDOS}
+        for comando in registry.COMANDOS:
+            for apelido in comando.apelidos:
+                assert apelido not in nomes
 
 
 class TestDefinicoes:
@@ -58,7 +88,7 @@ class TestDefinicoes:
             return
         assert asyncio.iscoroutinefunction(comando.handler)
         parametros = list(inspect.signature(comando.handler).parameters)
-        assert parametros == ["client", "token", "chat_id", "actor_id"]
+        assert parametros == ["client", "token", "chat_id", "actor_id", "args"]
 
     @pytest.mark.parametrize("comando", registry.COMANDOS, ids=lambda c: c.nome)
     def test_handler_recebe_quem_pediu(self, comando):
@@ -66,6 +96,13 @@ class TestDefinicoes:
         if comando.handler is None:
             return
         assert "actor_id" in inspect.signature(comando.handler).parameters
+
+    @pytest.mark.parametrize("comando", registry.COMANDOS, ids=lambda c: c.nome)
+    def test_handler_recebe_argumentos(self, comando):
+        """Comandos como /language e /container leem o resto da mensagem."""
+        if comando.handler is None:
+            return
+        assert "args" in inspect.signature(comando.handler).parameters
 
 
 class TestBusca:

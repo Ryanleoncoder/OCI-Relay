@@ -10,6 +10,7 @@ import asyncio
 import pytest
 
 from oci_relay.channels.telegram import adapter
+from oci_relay.i18n import t as msg
 from oci_relay.safety import confirmation as conf
 from oci_relay.safety.confirmation import Estado
 
@@ -76,7 +77,7 @@ class TestAutorizacao:
         _processar(_callback(c.nonce, from_id=999), monkeypatch)
 
         assert conf.buscar(c.nonce).estado is Estado.PENDENTE
-        assert "Não autorizado." in telegram["answers"]
+        assert msg("confirmation.unauthorised") in telegram["answers"]
 
     def test_chat_autorizado_nao_autoriza_o_membro(self, telegram, monkeypatch):
         """Num grupo permitido, a allowlist do chat não vale para o clique.
@@ -89,7 +90,7 @@ class TestAutorizacao:
                    permitidos=(CHAT,))
 
         assert conf.buscar(c.nonce).estado is Estado.PENDENTE
-        assert "Não autorizado." in telegram["answers"]
+        assert msg("confirmation.unauthorised") in telegram["answers"]
 
     def test_autorizado_mas_nao_autor_nao_resolve(self, telegram, monkeypatch):
         """Estar na allowlist não dá direito de aprovar ação alheia."""
@@ -115,7 +116,7 @@ class TestCancelamento:
         _processar(_callback(c.nonce, acao="no"), monkeypatch)
 
         assert conf.buscar(c.nonce).estado is Estado.CANCELADA
-        assert any("cancelada" in e.lower() for e in telegram["edits"])
+        assert msg("confirmation.cancelled_message") in telegram["edits"]
 
 
 class TestConfirmacao:
@@ -125,7 +126,7 @@ class TestConfirmacao:
         _processar(_callback(c.nonce), monkeypatch)
 
         assert conf.buscar(c.nonce).estado is Estado.FALHOU
-        assert any("executor" in e for e in telegram["edits"])
+        assert msg("confirmation.no_executor") in telegram["edits"]
 
     def test_executor_recebe_a_confirmacao(self, telegram, monkeypatch):
         recebidas = []
@@ -153,7 +154,7 @@ class TestConfirmacao:
         _processar(_callback(c.nonce), monkeypatch)
 
         assert conf.buscar(c.nonce).estado is Estado.FALHOU
-        assert any("falhou" in e.lower() for e in telegram["edits"])
+        assert any("OCI recusou" in e for e in telegram["edits"])
 
     def test_clique_repetido_executa_uma_vez(self, telegram, monkeypatch):
         execucoes = []
@@ -178,11 +179,11 @@ class TestDadosInvalidos:
         callback["data"] = dados
         _processar(callback, monkeypatch)
 
-        assert any("não reconhecido" in a for a in telegram["answers"])
+        assert msg("confirmation.unrecognised") in telegram["answers"]
 
     def test_nonce_inexistente(self, telegram, monkeypatch):
         _processar(_callback("inventado"), monkeypatch)
-        assert any("não encontrada" in a for a in telegram["answers"])
+        assert msg("confirmation.refused.desconhecida") in telegram["answers"]
 
 
 class TestRespostaAoBotao:

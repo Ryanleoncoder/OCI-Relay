@@ -81,6 +81,24 @@ def get_uptime() -> int:
     return int(datetime.now().timestamp() - psutil.boot_time())
 
 
+def get_boot_time() -> datetime:
+    """Momento em que o sistema foi ligado."""
+    return datetime.fromtimestamp(psutil.boot_time())
+
+
+def get_sessions() -> list[dict]:
+    """Usuários com sessão aberta, conforme o registro do sistema."""
+    return [
+        {
+            "nome": u.name,
+            "origem": u.host or "local",
+            "desde": datetime.fromtimestamp(u.started),
+            "terminal": u.terminal or "-",
+        }
+        for u in psutil.users()
+    ]
+
+
 def get_health() -> dict:
     """Obtém status de saúde completo."""
     return {

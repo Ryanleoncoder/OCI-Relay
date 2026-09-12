@@ -1,0 +1,302 @@
+# Interface messages, English.
+#
+# Keys are referenced from code as dotted paths: `common.overall` reads
+# `common: {overall: ...}` below.
+#
+# Placeholders use `{name}` and are filled by the caller. Keep every
+# placeholder that appears here when translating — a missing one falls back
+# to the raw text.
+#
+# Values starting with an emoji are titles; the emoji is part of the string
+# so a translation can move it if the language reads better that way.
+
+features:
+  sessions: "SSH sessions"
+  watchers: "Watchers"
+  alerts: "Alerts"
+
+common:
+  overall: "Overall"
+  source_monitoring: "Source: OCI Monitoring (1 min granularity, delayed)."
+  unavailable: "Unavailable"
+  not_available_here: "Not available on this host"
+  none_found: "Nothing found"
+  total: "Total"
+  not_implemented: "🚧 {feature} is not implemented yet."
+
+status:
+  healthy: "Healthy"
+  warning: "Warning"
+  critical: "Critical"
+  unknown: "Unknown"
+
+errors:
+  oci_refused: "OCI refused the call: HTTP {status} — {message}"
+  oci_unavailable: "OCI unavailable: {reason}"
+  generic: "Could not read {subject}: {reason}"
+  no_requester: "Could not identify who asked for this action."
+  oci_not_configured: "OCI is not configured."
+
+start:
+  title: "**OCI Relay — Operations Companion**"
+  available: "Available commands:"
+  hint: "Type / to see the command list."
+  unknown_command: "Unknown command: {command}"
+  not_a_command: "Send a command. Use /help for the list."
+  restricted: "This bot is restricted. Your ID is not authorised."
+
+instance:
+  title: "☁️ Instance Status"
+  name: "Name"
+  state: "State"
+  shape: "Shape"
+  ocpu: "OCPU"
+  memory: "Memory"
+  region: "Region"
+
+summary:
+  title: "☁️ OCI Relay"
+  oci: "OCI"
+  resources: "Resources"
+  uptime: "Uptime"
+  cpu: "CPU"
+  ram: "RAM"
+  disk: "Disk"
+  load: "Load"
+  error: "Could not build the summary: {reason}"
+
+health:
+  title_vps: "🩺 Health — {name}"
+  title_local: "🩺 Health"
+  utilisation: "Utilisation"
+  io: "I/O (current rate)"
+  disk_read: "Disk read"
+  disk_write: "Disk write"
+  net_in: "Net in"
+  net_out: "Net out"
+  local_notice: "OCI is not configured: these numbers describe the host running the bot."
+
+cpu:
+  title: "🔥 CPU"
+  usage: "Usage"
+  cores: "Cores"
+  load: "Load"
+  per_core: "Per-core"
+  top: "Top CPU"
+  core: "core {index}"
+
+memory:
+  title: "🧠 Memory"
+  total: "Total"
+  used: "Used"
+  available: "Available"
+  usage: "Usage"
+  swap: "Swap"
+  top: "Top RAM"
+
+disk:
+  title: "💾 Disk"
+  none: "No readable mount point found."
+
+top:
+  title: "🔥 Top processes"
+  by_cpu: "By CPU"
+  by_memory: "By memory"
+  none: "No visible processes."
+  normalised: "CPU percentage is normalised by core count."
+
+ports:
+  title: "🌐 Listening Ports"
+  none: "Nothing is listening."
+  public: "Public {emoji} ({count})"
+  localhost: "Localhost ({count})"
+  total: "Total: {count} ports"
+  limited: "Processes marked '?' belong to other users: identifying them requires root."
+
+network:
+  title: "🌐 Network"
+  vcn: "VCN"
+  subnet: "Subnet"
+  kind: "Kind"
+  public_subnet: "public"
+  private_subnet: "private"
+  public_ip: "Public IP"
+  private_ip: "Private IP"
+  no_ip: "none"
+  ingress: "Ingress ({count} rules)"
+  egress_rules: "Egress rules"
+  routes: "Routes"
+  nsgs: "NSGs"
+  none: "none"
+  open_to_world: "{emoji} Open to any source: {rules}."
+  no_vnic: "No primary VNIC found."
+  all_ports: "all"
+
+oci_ip:
+  title: "🌐 OCI IPs"
+  public: "Public"
+  private: "Private"
+  hostname: "Hostname"
+  nsgs: "NSGs"
+  no_public: "no public IP"
+  no_vnic: "No primary VNIC found."
+
+usage:
+  title: "💳 OCI Usage"
+  period: "Period: {period}"
+  total: "Total"
+  by_service: "By service"
+  budgets: "Budgets"
+  delayed: "OCI billing data is consolidated with a delay; this is not the cost at this instant."
+
+docker:
+  title: "🐳 Docker"
+  running: "Running"
+  stopped: "Stopped"
+  restarting: "Restarting"
+  containers: "Containers"
+  none: "No containers found."
+
+services:
+  title: "⚙️ Services"
+  critical: "Critical"
+  running_count: "Running"
+  failed_count: "Failed"
+  failures: "Failures"
+  running: "Running"
+  and_more: "... and {count} more services."
+  no_systemd: "systemd is not available on this host."
+
+security:
+  title: "🛡️ Security"
+  fail2ban: "Fail2Ban"
+  ssh: "SSH"
+  failed_logins: "Failed logins (24h)"
+  logs_unavailable: "SSH logs are not available on this host"
+  network: "Network"
+  listening: "Listening ports"
+  public: "Public"
+
+fail2ban:
+  title: "🛡️ Fail2Ban"
+  service: "Service"
+  jails: "Jails"
+  active: "active"
+  inactive: "inactive"
+  not_installed: "not installed on this host"
+  error: "could not query"
+
+power:
+  suspend_title: "🛑 Stop instance"
+  restart_title: "🔄 Restart instance"
+  start_title: "▶️ Start instance"
+  instance: "Instance"
+  state: "State"
+  action: "Action"
+  result: "Result"
+  suspend_effect: "The machine shuts down. Nothing runs while it is stopped."
+  restart_effect: "The machine reboots and is unreachable for about a minute."
+  start_effect: "The machine powers on and services come up as configured."
+  wrong_state: "{emoji} The instance is **{current}**, and this action only applies when it is **{expected}**."
+  self_hosted: "{emoji} The Relay runs on **this** instance. After stopping, the bot goes offline and only the OCI console can start it again."
+  ephemeral_ip: "{emoji} If the public IP is ephemeral, it changes on restart. Current: {ip}"
+  confirm_within: "Confirm within {seconds}s."
+  sent: "{emoji} {action} sent to OCI."
+  transition: "The instance is moving to **{state}**. The transition takes a moment; check with /status."
+  request_id: "opc-request-id: {id}"
+
+confirmation:
+  confirm: "✅ Confirm"
+  cancel: "✖️ Cancel"
+  confirmed: "Confirmed."
+  cancelled: "Cancelled."
+  cancelled_message: "✖️ Action cancelled."
+  unauthorised: "Not authorised."
+  unrecognised: "Button not recognised."
+  no_executor: "⚠️ Action confirmed, but no executor is registered."
+  failed: "🔴 The action failed: {reason}"
+  refused:
+    desconhecida: "Confirmation not found."
+    expirada: "Confirmation expired. Repeat the command."
+    outro_ator: "Only the person who requested the action can confirm it."
+    ja_resolvida: "This confirmation was already answered."
+
+language:
+  name: "English"
+  title: "🌐 Language"
+  current: "Current language: {language}"
+  available: "Available"
+  how_to: "Send /language <code> to switch. Example: /language pt-br"
+  unknown: "Unknown language: {language}. Available: {available}"
+  changed: "Language changed to {language}."
+
+shape:
+  title: "📐 Shape"
+  shape: "Shape"
+  ocpu: "OCPU"
+  memory: "Memory"
+  flex_note: "Flex shapes allow OCPU and memory to be changed."
+  fixed_note: "This shape has a fixed configuration."
+
+uptime:
+  title: "⏱️ Uptime"
+  up_for: "Up for"
+  booted: "Booted at"
+
+failed:
+  title: "⚙️ Failed units"
+  none: "No failed units."
+  count: "{count} failed"
+
+sessions:
+  title: "🔐 Active sessions"
+  none: "No user is logged in."
+  user: "User"
+  from_host: "From"
+  since: "Since"
+  terminal: "Terminal"
+
+container:
+  title: "🐳 Container"
+  usage: "Please give a name: /container <name>"
+  not_found: "Container not found: {name}"
+  cpu: "CPU"
+  memory: "Memory"
+  status: "Status"
+
+docker_logs:
+  title: "📄 Container logs"
+  usage: "Please give a name: /docker_logs <name>"
+  empty: "No log output."
+  truncated: "Showing the last {count} lines."
+
+commands:
+  start: "Start the conversation"
+  help: "List available commands"
+  language: "Change the bot language"
+  summary: "Quick system overview"
+  status: "OCI instance state"
+  usage: "Reported tenancy cost"
+  oci_ip: "Public and private IP"
+  shape: "Shape, OCPU and memory"
+  network: "VCN, subnet and access rules"
+  health: "VPS health (OCI Monitoring)"
+  cpu: "CPU usage"
+  memory: "RAM usage"
+  disk: "Disk usage"
+  top: "Heaviest processes"
+  uptime: "How long the host has been up"
+  docker: "Container status"
+  services: "systemd services"
+  failed: "Failed systemd units"
+  container: "Resource usage of one container"
+  docker_logs: "Last log lines of a container"
+  security: "Security dashboard"
+  ports: "Listening ports"
+  fail2ban: "Fail2Ban status"
+  sessions: "Open user sessions"
+  alerts: "Alert configuration"
+  watch: "Active watchers"
+  stop: "Stop the instance (with confirmation)"
+  restart: "Restart the instance (with confirmation)"
+  poweron: "Start a stopped instance (with confirmation)"

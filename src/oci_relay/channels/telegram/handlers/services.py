@@ -3,6 +3,7 @@
 import asyncio
 
 from ....config.settings import settings
+from ....i18n import t
 from ....system.services import SystemdIndisponivel, get_services_status
 from .. import formatter as fmt
 
@@ -11,9 +12,11 @@ _LIMITE_LISTAGEM = 30
 
 
 async def handle(client, token: str, chat_id: int,
-                 actor_id: int | None = None):
+                 actor_id: int | None = None, args: str = ""):
     """Envia serviços críticos, unidades em falha e serviços em execução."""
     from ..adapter import tg_send_text
+
+    cabecalho = fmt.cabecalho_local(t("services.title"))
 
     try:
         dados = await asyncio.to_thread(
@@ -33,33 +36,34 @@ async def handle(client, token: str, chat_id: int,
         rodando = dados["running"]
 
         partes = [
-            fmt.titulo_local("⚙️", "Services"),
+            cabecalho,
             "",
-            fmt.secao("Críticos"),
+            fmt.secao(t("services.critical")),
             fmt.tabela(criticos),
             fmt.tabela([
-                ("Em execução", str(len(rodando))),
-                ("Em falha", f"{e_falhas} {len(falhas)}"),
+                (t("services.running_count"), str(len(rodando))),
+                (t("services.failed_count"), f"{e_falhas} {len(falhas)}"),
             ]),
         ]
 
         if falhas:
-            partes.append(fmt.secao("Falhas"))
+            partes.append(fmt.secao(t("services.failures")))
             partes.append(fmt.bloco(falhas[:10]))
 
         if rodando:
-            partes.append(fmt.secao("Em execução"))
+            partes.append(fmt.secao(t("services.running")))
             partes.append(fmt.bloco(rodando[:_LIMITE_LISTAGEM]))
             if len(rodando) > _LIMITE_LISTAGEM:
-                partes.append(
-                    f"__... e mais {len(rodando) - _LIMITE_LISTAGEM} "
-                    "serviços.__")
+                partes.append("__" + t("services.and_more",
+                                       count=len(rodando) - _LIMITE_LISTAGEM)
+                              + "__")
 
-        partes.append(f"Overall: {fmt.veredito(*emojis)}")
+        partes.append(f"{t('common.overall')}: {fmt.veredito(*emojis)}")
 
         await tg_send_text(client, token, chat_id, "\n".join(partes))
-    except SystemdIndisponivel as e:
+    except SystemdIndisponivel:
         await tg_send_text(client, token, chat_id,
-            f"⚙️ **Services**\n\n{fmt.NEUTRO} {e}.")
+            f"{cabecalho}\n\n{fmt.NEUTRO} {t('services.no_systemd')}")
     except Exception as e:
-        await tg_send_text(client, token, chat_id, f"Erro ao obter serviços: {e}")
+        await tg_send_text(client, token, chat_id,
+            t("errors.generic", subject="services", reason=e))

@@ -2,6 +2,7 @@
 
 import asyncio
 
+from ....i18n import t
 from ....security import (
     get_fail2ban_status,
     get_listening_ports_summary,
@@ -18,7 +19,7 @@ _EMOJI_F2B = {
 
 
 async def handle(client, token: str, chat_id: int,
-                 actor_id: int | None = None):
+                 actor_id: int | None = None, args: str = ""):
     """Envia dashboard de segurança."""
     from ..adapter import tg_send_text
 
@@ -34,30 +35,31 @@ async def handle(client, token: str, chat_id: int,
         e_portas = fmt.AVISO if publicas else fmt.OK
 
         partes = [
-            fmt.titulo("🛡️", "Security"),
+            fmt.cabecalho(t("security.title")),
             "",
-            f"Fail2Ban: {e_f2b} {status_f2b}",
+            f"{t('security.fail2ban')}: {e_f2b} {status_f2b}",
             "",
-            fmt.secao("SSH"),
+            fmt.secao(t("security.ssh")),
         ]
 
         if "error" in ssh:
-            partes.append(f"{fmt.NEUTRO} logs indisponíveis neste host")
+            partes.append(f"{fmt.NEUTRO} {t('security.logs_unavailable')}")
             e_ssh = fmt.NEUTRO
         else:
-            falhas = ssh.get("total", 0)
             e_ssh = fmt.OK
-            partes.append(fmt.tabela([("Failed logins (24h)", str(falhas))]))
+            partes.append(fmt.tabela(
+                [(t("security.failed_logins"), str(ssh.get("total", 0)))]))
 
         partes += [
-            fmt.secao("Network"),
+            fmt.secao(t("security.network")),
             fmt.tabela([
-                ("Listening ports", str(len(portas))),
-                ("Públicas", f"{e_portas} {len(publicas)}"),
+                (t("security.listening"), str(len(portas))),
+                (t("security.public"), f"{e_portas} {len(publicas)}"),
             ]),
-            f"Overall: {fmt.veredito(e_f2b, e_ssh, e_portas)}",
+            f"{t('common.overall')}: {fmt.veredito(e_f2b, e_ssh, e_portas)}",
         ]
 
         await tg_send_text(client, token, chat_id, "\n".join(partes))
     except Exception as e:
-        await tg_send_text(client, token, chat_id, f"Erro ao obter segurança: {e}")
+        await tg_send_text(client, token, chat_id,
+            t("errors.generic", subject="security", reason=e))

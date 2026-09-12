@@ -13,6 +13,10 @@ from .auth import get_compute_client, get_network_client
 # A OCI usa o número de protocolo da IANA; "all" quando não restringe.
 _PROTOCOLOS = {"1": "ICMP", "6": "TCP", "17": "UDP", "58": "ICMPv6", "all": "all"}
 
+# Marcador para regra sem restrição de porta. O handler o traduz; a
+# camada de dados não conhece idioma.
+TODAS_AS_PORTAS = "*"
+
 # Origens que aceitam tráfego de qualquer lugar da internet.
 _ABERTO_AO_MUNDO = {"0.0.0.0/0", "::/0"}
 
@@ -31,7 +35,7 @@ def _faixa_de_portas(regra) -> str:
             if faixa.min == faixa.max:
                 return str(faixa.min)
             return f"{faixa.min}-{faixa.max}"
-    return "todas"
+    return TODAS_AS_PORTAS
 
 
 def _regra_entrada(regra) -> dict:

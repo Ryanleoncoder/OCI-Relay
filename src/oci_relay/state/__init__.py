@@ -81,6 +81,15 @@ def _criar_schema(conn: sqlite3.Connection):
     """)
 
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS preferences (
+            chat_id INTEGER NOT NULL,
+            chave TEXT NOT NULL,
+            valor TEXT NOT NULL,
+            PRIMARY KEY (chat_id, chave)
+        )
+    """)
+
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS audit_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             action TEXT NOT NULL,
@@ -167,3 +176,29 @@ def log_audit(action: str, target: str | None = None, result: str | None = None)
     )
     conn.commit()
     conn.close()
+
+
+def get_preferencia(chat_id: int, chave: str) -> str | None:
+    """Preferência de uma conversa, ou None se nunca definida."""
+    conn = get_connection()
+    try:
+        linha = conn.execute(
+            "SELECT valor FROM preferences WHERE chat_id = ? AND chave = ?",
+            (chat_id, chave),
+        ).fetchone()
+    finally:
+        conn.close()
+    return linha["valor"] if linha else None
+
+
+def set_preferencia(chat_id: int, chave: str, valor: str) -> None:
+    conn = get_connection()
+    try:
+        conn.execute(
+            "INSERT OR REPLACE INTO preferences (chat_id, chave, valor)"
+            " VALUES (?, ?, ?)",
+            (chat_id, chave, valor),
+        )
+        conn.commit()
+    finally:
+        conn.close()

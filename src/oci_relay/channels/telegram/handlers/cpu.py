@@ -3,12 +3,13 @@
 import asyncio
 
 from ....config.settings import settings
+from ....i18n import t
 from ....system import get_cpu_usage, get_top_processes
 from .. import formatter as fmt
 
 
 async def handle(client, token: str, chat_id: int,
-                 actor_id: int | None = None):
+                 actor_id: int | None = None, args: str = ""):
     """Envia detalhamento de CPU."""
     from ..adapter import tg_send_text
 
@@ -21,24 +22,26 @@ async def handle(client, token: str, chat_id: int,
             settings.alert_cpu_critical_percent)
 
         partes = [
-            fmt.titulo_local("🔥", "CPU"),
+            fmt.cabecalho_local(t("cpu.title")),
             "",
             fmt.tabela([
-                ("Usage", f"{cpu['percent']}%  {emoji}"),
-                ("Cores", str(cpu["cores"])),
-                ("Load", fmt.carga(cpu["load_avg"])),
+                (t("cpu.usage"), f"{cpu['percent']}%  {emoji}"),
+                (t("cpu.cores"), str(cpu["cores"])),
+                (t("cpu.load"), fmt.carga(cpu["load_avg"])),
             ]),
-            fmt.secao("Per-core"),
+            fmt.secao(t("cpu.per_core")),
             fmt.tabela([
-                (f"core {i}", f"{v}%") for i, v in enumerate(cpu["per_core"])
+                (t("cpu.core", index=i), f"{v}%")
+                for i, v in enumerate(cpu["per_core"])
             ]),
         ]
 
         if top:
-            partes.append(fmt.secao("Top CPU"))
+            partes.append(fmt.secao(t("cpu.top")))
             partes.append(fmt.tabela(
                 [(p["name"][:22], f"{p['cpu_percent']}%") for p in top]))
 
         await tg_send_text(client, token, chat_id, "\n".join(partes))
     except Exception as e:
-        await tg_send_text(client, token, chat_id, f"Erro ao obter CPU: {e}")
+        await tg_send_text(client, token, chat_id,
+            t("errors.generic", subject="CPU", reason=e))

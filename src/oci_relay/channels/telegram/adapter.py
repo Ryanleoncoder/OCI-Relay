@@ -7,6 +7,13 @@ import logging
 import httpx
 
 from ...config.settings import settings
+from ...i18n import (
+    IDIOMA_PADRAO,
+    definir_idioma,
+    idiomas_disponiveis,
+    resolver,
+    t,
+)
 from . import registry
 
 logger = logging.getLogger(__name__)
@@ -190,15 +197,6 @@ async def tg_send_text(client, token: str, chat_id: int, text: str) -> None:
             })
 
 
-# Mensagem mostrada quando uma confirmação não pode ser aceita.
-_RECUSAS = {
-    "desconhecida": "Confirmação não encontrada.",
-    "expirada": "Confirmação expirada. Repita o comando.",
-    "outro_ator": "Só quem pediu a ação pode confirmá-la.",
-    "ja_resolvida": "Esta confirmação já foi respondida.",
-}
-
-
 def _executores() -> dict:
     """Ações executáveis após confirmação.
 
@@ -223,8 +221,10 @@ async def tg_send_confirmation(client, token: str, chat_id: int, texto: str,
         "text": _markdown_to_telegram_html(texto),
         "parse_mode": "HTML",
         "reply_markup": {"inline_keyboard": [[
-            {"text": "✅ Confirmar", "callback_data": f"ok:{nonce}"},
-            {"text": "✖️ Cancelar", "callback_data": f"no:{nonce}"},
+            {"text": t("confirmation.confirm"),
+             "callback_data": f"ok:{nonce}"},
+            {"text": t("confirmation.cancel"),
+             "callback_data": f"no:{nonce}"},
         ]]},
     })
 
@@ -262,15 +262,39 @@ class TelegramBotManager:
         # Quem falou por último em cada chat: a confirmação amarra a ação
         # a essa pessoa, não ao chat.
         self._autores: dict = {}
+        # Idioma que o cliente do Telegram anuncia em cada mensagem.
+        self._idiomas: dict = {}
         self._commands = registry.para_telegram()
 
     async def _set_commands(self, client, token: str):
-        resp = await _tg_post(client, token, "setMyCommands",
-                              json={"commands": self._commands})
-        if resp is None or resp.status_code != 200:
-            logger.warning("Telegram não aceitou setMyCommands.")
-            return
-        logger.info("Telegram: %d comandos registrados.", len(self._commands))
+        """Registra o menu, uma lista por idioma disponível.
+
+        O Telegram escolhe qual mostrar pelo idioma do cliente de cada
+        pessoa. O registro sem `language_code` é o que ele usa quando o
+        idioma do cliente não tem lista própria.
+
+        O código aqui é o ISO 639-1 de duas letras que a API aceita, e não
+        o nome do catálogo: `pt_BR` vira `pt`.
+        """
+        registros = [(None, registry.para_telegram(IDIOMA_PADRAO))]
+        for idioma in idiomas_disponiveis():
+            if idioma == IDIOMA_PADRAO:
+                continue
+            registros.append(
+                (idioma.split("_")[0].lower(), registry.para_telegram(idioma)))
+
+        for codigo, comandos in registros:
+            corpo = {"commands": comandos}
+            if codigo:
+                corpo["language_code"] = codigo
+
+            resp = await _tg_post(client, token, "setMyCommands", json=corpo)
+            if resp is None or resp.status_code != 200:
+                logger.warning("Telegram não aceitou setMyCommands (%s).",
+                               codigo or "padrão")
+                continue
+            logger.info("Telegram: %d comandos registrados (%s).",
+                        len(comandos), codigo or "padrão")
 
     async def _set_menu_button(self, client, token: str):
         """Garante o botão Menu com a lista de comandos.
@@ -287,27 +311,56 @@ class TelegramBotManager:
 
     async def _start_message(self, client, token: str, chat_id: int):
         await tg_send_text(client, token, chat_id, "\n".join([
-            "**OCI Relay — Companion Operacional**",
+            t("start.title"),
             "",
-            "Comandos disponíveis:",
+            t("start.available"),
             registry.texto_de_ajuda(),
             "",
-            "Use / para ver os comandos.",
+            t("start.hint"),
         ]))
+
+    def _idioma_salvo(self, chat_id: int) -> str | None:
+        """Lê a preferência da conversa. Toca o disco, roda fora do laço."""
+        from ...state import get_preferencia
+
+        return get_preferencia(chat_id, "idioma")
+
+    async def _aplicar_idioma(self, chat_id: int,
+                              codigo_cliente: str | None = None) -> None:
+        """Resolve o idioma da conversa.
+
+        A escolha explícita via /language tem precedência; sem ela, segue o
+        idioma configurado no cliente do Telegram; sem catálogo para nenhum
+        dos dois, o padrão.
+
+        `definir_idioma` roda aqui e não dentro da thread de leitura: uma
+        thread recebe uma cópia do contexto, e o valor definido lá dentro
+        não volta para quem chamou.
+
+        O padrão é aplicado explicitamente, e não por omissão: o contexto
+        pode carregar o idioma de uma conversa anterior, e deixá-lo em pé
+        faria um usuário receber a língua de outro.
+        """
+        salvo = await asyncio.to_thread(self._idioma_salvo, chat_id)
+        definir_idioma(salvo or resolver(codigo_cliente) or IDIOMA_PADRAO)
 
     async def _process_message(self, client, token: str, chat_id: int,
                                text: str, actor_id: int | None = None):
+        await self._aplicar_idioma(chat_id, self._idiomas.get(chat_id))
+
         if not text.startswith("/"):
             await tg_send_text(client, token, chat_id,
-                "Envie um comando. Use /help para ver a lista.")
+                               t("start.not_a_command"))
             return
 
-        nome = text.split()[0]
+        partes = text.split(maxsplit=1)
+        nome = partes[0]
+        args = partes[1].strip() if len(partes) > 1 else ""
         comando = registry.buscar(nome)
 
         if comando is None:
             await tg_send_text(client, token, chat_id,
-                f"Comando desconhecido: {nome}")
+                               t("start.unknown_command", command=nome))
             return
 
         # start e help nao tem handler proprio: sao a lista de comandos.
@@ -315,7 +368,7 @@ class TelegramBotManager:
             await self._start_message(client, token, chat_id)
             return
 
-        await comando.handler(client, token, chat_id, actor_id)
+        await comando.handler(client, token, chat_id, actor_id, args)
 
     async def _handle_message(self, token: str, client, message: dict):
         chat_id = message["chat"]["id"]
@@ -325,11 +378,11 @@ class TelegramBotManager:
         if not self._autorizado(chat_id, from_id):
             logger.warning(
                 "Mensagem ignorada do chat_id=%s (fora da whitelist)", chat_id)
-            await tg_send_text(client, token, chat_id,
-                "Este assistente está em modo restrito. Seu ID não está autorizado.")
+            await tg_send_text(client, token, chat_id, t("start.restricted"))
             return
 
         self._autores[chat_id] = from_id
+        self._idiomas[chat_id] = message.get("from", {}).get("language_code")
         self._buffers.setdefault(chat_id, []).append(text)
         old_task = self._buffer_tasks.get(chat_id)
         if old_task and not old_task.done():
@@ -362,15 +415,20 @@ class TelegramBotManager:
         chat_id = mensagem.get("chat", {}).get("id")
         message_id = mensagem.get("message_id")
 
+        if chat_id is not None:
+            await self._aplicar_idioma(
+                chat_id, callback.get("from", {}).get("language_code"))
+
         if not self._ator_autorizado(from_id):
             logger.warning("Callback ignorado de %s (fora da whitelist)", from_id)
-            await tg_answer_callback(client, token, callback_id, "Não autorizado.")
+            await tg_answer_callback(client, token, callback_id,
+                                     t("confirmation.unauthorised"))
             return
 
         acao, _, nonce = dados.partition(":")
         if acao not in ("ok", "no") or not nonce:
             await tg_answer_callback(client, token, callback_id,
-                                     "Botão não reconhecido.")
+                                     t("confirmation.unrecognised"))
             return
 
         from ...safety import confirmation as conf
@@ -379,7 +437,7 @@ class TelegramBotManager:
         confirmacao, recusa = await asyncio.to_thread(resolver, nonce, from_id)
 
         if recusa is not None:
-            aviso = _RECUSAS[recusa.value]
+            aviso = t(f"confirmation.refused.{recusa.value}")
             await tg_answer_callback(client, token, callback_id, aviso)
             # Recusa por outro ator não altera a mensagem: a confirmação
             # segue pendente para quem de fato pediu.
@@ -389,12 +447,14 @@ class TelegramBotManager:
             return
 
         if acao == "no":
-            await tg_answer_callback(client, token, callback_id, "Cancelado.")
+            await tg_answer_callback(client, token, callback_id,
+                                     t("confirmation.cancelled"))
             await tg_edit_message(client, token, chat_id, message_id,
-                                  "✖️ Ação cancelada.")
+                                  t("confirmation.cancelled_message"))
             return
 
-        await tg_answer_callback(client, token, callback_id, "Confirmado.")
+        await tg_answer_callback(client, token, callback_id,
+                                 t("confirmation.confirmed"))
         await self._executar_confirmada(client, token, confirmacao, message_id)
 
     async def _executar_confirmada(self, client, token: str, confirmacao,
@@ -408,7 +468,7 @@ class TelegramBotManager:
             await asyncio.to_thread(
                 conf.marcar_resultado, confirmacao.nonce, False)
             await tg_edit_message(client, token, confirmacao.chat_id, message_id,
-                                  "⚠️ Ação confirmada, mas não há executor.")
+                                  t("confirmation.no_executor"))
             return
 
         try:
@@ -416,7 +476,7 @@ class TelegramBotManager:
             sucesso = True
         except Exception as e:
             logger.error("Falha ao executar %s: %s", confirmacao.comando, e)
-            texto = f"🔴 A ação falhou: {e}"
+            texto = t("confirmation.failed", reason=e)
             sucesso = False
 
         await asyncio.to_thread(conf.marcar_resultado, confirmacao.nonce, sucesso)

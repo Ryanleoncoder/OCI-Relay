@@ -7,6 +7,8 @@ Use `bloco()` sempre que o alinhamento importar.
 
 import socket
 
+from ...i18n import t
+
 OK = "🟢"
 AVISO = "🟡"
 CRITICO = "🔴"
@@ -25,11 +27,11 @@ _ESTADOS_OCI = {
 
 _ORDEM = {OK: 0, NEUTRO: 1, AVISO: 2, CRITICO: 3}
 
-_ROTULO = {
-    OK: "Healthy",
-    NEUTRO: "Unknown",
-    AVISO: "Warning",
-    CRITICO: "Critical",
+_CHAVE_ROTULO = {
+    OK: "status.healthy",
+    NEUTRO: "status.unknown",
+    AVISO: "status.warning",
+    CRITICO: "status.critical",
 }
 
 
@@ -54,10 +56,8 @@ def emoji_estado_oci(estado: str | None) -> str:
 def veredito(*emojis: str) -> str:
     """Pior estado entre os recebidos, já com rótulo. Ex.: '🟡 Warning'."""
     candidatos = [e for e in emojis if e in _ORDEM]
-    if not candidatos:
-        return f"{NEUTRO} {_ROTULO[NEUTRO]}"
-    pior = max(candidatos, key=lambda e: _ORDEM[e])
-    return f"{pior} {_ROTULO[pior]}"
+    pior = max(candidatos, key=lambda e: _ORDEM[e]) if candidatos else NEUTRO
+    return f"{pior} {t(_CHAVE_ROTULO[pior])}"
 
 
 def host_local() -> str:
@@ -67,17 +67,17 @@ def host_local() -> str:
         return "host local"
 
 
-def titulo(emoji: str, texto: str) -> str:
-    return f"{emoji} **{texto}**"
+def cabecalho(titulo: str) -> str:
+    return f"**{titulo}**"
 
 
-def titulo_local(emoji: str, texto: str) -> str:
+def cabecalho_local(titulo: str) -> str:
     """Cabeçalho de comando que mede a máquina do bot, não a VPS.
 
     Nomear a máquina evita ler dois comandos seguidos como se falassem do
     mesmo host, quando um mede a VPS e o outro a máquina do bot.
     """
-    return f"{emoji} **{texto} — {host_local()}**"
+    return f"**{titulo} — {host_local()}**"
 
 
 def secao(texto: str) -> str:
@@ -128,4 +128,4 @@ def gb(valor: float | None) -> str:
 
 def nao_implementado(recurso: str) -> str:
     """Resposta padrão dos comandos ainda não implementados."""
-    return f"🚧 {recurso} ainda não implementado."
+    return t("common.not_implemented", feature=recurso)
