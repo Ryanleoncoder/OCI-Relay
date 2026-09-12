@@ -7,7 +7,13 @@ import logging
 import httpx
 
 from ...config.settings import settings
-from ...i18n import IDIOMA_PADRAO, definir_idioma, resolver, t
+from ...i18n import (
+    IDIOMA_PADRAO,
+    definir_idioma,
+    idiomas_disponiveis,
+    resolver,
+    t,
+)
 from . import registry
 
 logger = logging.getLogger(__name__)
@@ -261,12 +267,34 @@ class TelegramBotManager:
         self._commands = registry.para_telegram()
 
     async def _set_commands(self, client, token: str):
-        resp = await _tg_post(client, token, "setMyCommands",
-                              json={"commands": self._commands})
-        if resp is None or resp.status_code != 200:
-            logger.warning("Telegram não aceitou setMyCommands.")
-            return
-        logger.info("Telegram: %d comandos registrados.", len(self._commands))
+        """Registra o menu, uma lista por idioma disponível.
+
+        O Telegram escolhe qual mostrar pelo idioma do cliente de cada
+        pessoa. O registro sem `language_code` é o que ele usa quando o
+        idioma do cliente não tem lista própria.
+
+        O código aqui é o ISO 639-1 de duas letras que a API aceita, e não
+        o nome do catálogo: `pt_BR` vira `pt`.
+        """
+        registros = [(None, registry.para_telegram(IDIOMA_PADRAO))]
+        for idioma in idiomas_disponiveis():
+            if idioma == IDIOMA_PADRAO:
+                continue
+            registros.append(
+                (idioma.split("_")[0].lower(), registry.para_telegram(idioma)))
+
+        for codigo, comandos in registros:
+            corpo = {"commands": comandos}
+            if codigo:
+                corpo["language_code"] = codigo
+
+            resp = await _tg_post(client, token, "setMyCommands", json=corpo)
+            if resp is None or resp.status_code != 200:
+                logger.warning("Telegram não aceitou setMyCommands (%s).",
+                               codigo or "padrão")
+                continue
+            logger.info("Telegram: %d comandos registrados (%s).",
+                        len(comandos), codigo or "padrão")
 
     async def _set_menu_button(self, client, token: str):
         """Garante o botão Menu com a lista de comandos.
@@ -291,27 +319,34 @@ class TelegramBotManager:
             t("start.hint"),
         ]))
 
-    def _aplicar_idioma(self, chat_id: int,
-                        codigo_cliente: str | None = None) -> None:
+    def _idioma_salvo(self, chat_id: int) -> str | None:
+        """Lê a preferência da conversa. Toca o disco, roda fora do laço."""
+        from ...state import get_preferencia
+
+        return get_preferencia(chat_id, "idioma")
+
+    async def _aplicar_idioma(self, chat_id: int,
+                              codigo_cliente: str | None = None) -> None:
         """Resolve o idioma da conversa.
 
         A escolha explícita via /language tem precedência; sem ela, segue o
         idioma configurado no cliente do Telegram; sem catálogo para nenhum
         dos dois, o padrão.
 
+        `definir_idioma` roda aqui e não dentro da thread de leitura: uma
+        thread recebe uma cópia do contexto, e o valor definido lá dentro
+        não volta para quem chamou.
+
         O padrão é aplicado explicitamente, e não por omissão: o contexto
         pode carregar o idioma de uma conversa anterior, e deixá-lo em pé
         faria um usuário receber a língua de outro.
         """
-        from ...state import get_preferencia
-
-        idioma = get_preferencia(chat_id, "idioma") or resolver(codigo_cliente)
-        definir_idioma(idioma or IDIOMA_PADRAO)
+        salvo = await asyncio.to_thread(self._idioma_salvo, chat_id)
+        definir_idioma(salvo or resolver(codigo_cliente) or IDIOMA_PADRAO)
 
     async def _process_message(self, client, token: str, chat_id: int,
                                text: str, actor_id: int | None = None):
-        await asyncio.to_thread(self._aplicar_idioma, chat_id,
-                                self._idiomas.get(chat_id))
+        await self._aplicar_idioma(chat_id, self._idiomas.get(chat_id))
 
         if not text.startswith("/"):
             await tg_send_text(client, token, chat_id,
@@ -381,9 +416,8 @@ class TelegramBotManager:
         message_id = mensagem.get("message_id")
 
         if chat_id is not None:
-            await asyncio.to_thread(
-                self._aplicar_idioma, chat_id,
-                callback.get("from", {}).get("language_code"))
+            await self._aplicar_idioma(
+                chat_id, callback.get("from", {}).get("language_code"))
 
         if not self._ator_autorizado(from_id):
             logger.warning("Callback ignorado de %s (fora da whitelist)", from_id)

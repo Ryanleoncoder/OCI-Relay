@@ -59,10 +59,18 @@ class TestResolucaoDeCodigo:
 
 
 class TestPrecedencia:
-    def _aplicar(self, codigo_cliente=None):
-        gerente = adapter.TelegramBotManager()
-        gerente._aplicar_idioma(CHAT, codigo_cliente)
-        return i18n.idioma_atual()
+    def _aplicar(self, codigo_cliente=None, chat=CHAT):
+        """Resolve e lê o idioma dentro do mesmo contexto assíncrono.
+
+        Ler de fora daria o valor do contexto do chamador, e não o que o
+        handler enxergaria — que foi justamente onde o idioma se perdia.
+        """
+        async def executar():
+            gerente = adapter.TelegramBotManager()
+            await gerente._aplicar_idioma(chat, codigo_cliente)
+            return i18n.idioma_atual()
+
+        return asyncio.run(executar())
 
     def test_sem_nada_fica_no_padrao(self):
         assert self._aplicar() == i18n.IDIOMA_PADRAO
@@ -93,10 +101,7 @@ class TestPrecedencia:
 
         set_preferencia(CHAT, "idioma", "pt_BR")
         assert self._aplicar() == "pt_BR"
-
-        gerente = adapter.TelegramBotManager()
-        gerente._aplicar_idioma(CHAT + 1, None)
-        assert i18n.idioma_atual() == i18n.IDIOMA_PADRAO
+        assert self._aplicar(chat=CHAT + 1) == i18n.IDIOMA_PADRAO
 
 
 class TestComando:
@@ -132,6 +137,28 @@ class TestComando:
 
         self._rodar("  pt_BR  ")
         assert get_preferencia(CHAT, "idioma") == "pt_BR"
+
+
+class TestPropagacao:
+    """A troca precisa alcançar o handler, não só a função que a aplica.
+
+    `definir_idioma` chamado dentro de `asyncio.to_thread` grava numa cópia
+    do contexto: o valor se perde na volta, e o comando seguinte responde
+    no idioma anterior.
+    """
+
+    def test_idioma_alcanca_quem_roda_depois(self):
+        from oci_relay.state import set_preferencia
+
+        set_preferencia(CHAT, "idioma", "pt_BR")
+
+        async def fluxo():
+            gerente = adapter.TelegramBotManager()
+            await gerente._aplicar_idioma(CHAT, "en")
+            # O que um handler veria ao formatar a resposta.
+            return i18n.t("confirmation.confirm")
+
+        assert asyncio.run(fluxo()) == "✅ Confirmar"
 
 
 class TestIsolamentoEntreConversas:

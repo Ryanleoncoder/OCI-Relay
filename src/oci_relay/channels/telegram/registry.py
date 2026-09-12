@@ -9,8 +9,10 @@ digitação vira falha de import, detectada pelos testes, em vez de surpresa
 quando alguém manda o comando.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Iterable
+
+from ...i18n import t as msg
 
 from .handlers import (
     alerts, container, cpu, disk, docker, docker_logs, fail2ban, failed,
@@ -23,59 +25,83 @@ from .handlers import (
 @dataclass(frozen=True)
 class Comando:
     nome: str
-    descricao: str
     handler: Callable | None = None   # None = tratado pelo próprio adapter
     oculto: bool = False              # fora do menu e da ajuda
+    # Nomes antigos que continuam respondendo, sem aparecer no menu.
+    apelidos: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def descricao(self) -> str:
+        """Texto do menu, no idioma da conversa."""
+        return msg(f"commands.{self.nome}")
 
 
 COMANDOS: tuple[Comando, ...] = (
-    Comando("start", "Iniciar conversa"),
-    Comando("help", "Listar comandos disponíveis"),
-    Comando("language", "Trocar o idioma do bot", language.handle),
+    Comando("start"),
+    Comando("help"),
+    Comando("language", language.handle),
 
-    Comando("summary", "Resumo rápido do sistema", summary.handle),
-    Comando("status", "Estado da instância OCI", status.handle),
-    Comando("usage", "Custo reportado da tenancy", usage.handle),
-    Comando("oci_ip", "IPs público e privado da VPS", oci_ip.handle),
-    Comando("shape", "Shape, OCPU e memória da instância", shape.handle),
-    Comando("network", "VCN, subnet e regras de acesso", network.handle),
-    Comando("health", "Saúde da VPS (OCI Monitoring)", health.handle),
+    Comando("summary", summary.handle),
+    Comando("status", status.handle),
+    Comando("usage", usage.handle),
+    Comando("oci_ip", oci_ip.handle),
+    Comando("shape", shape.handle),
+    Comando("network", network.handle),
+    Comando("health", health.handle),
 
-    Comando("cpu", "Uso de CPU", cpu.handle),
-    Comando("memory", "Uso de RAM", memory.handle),
-    Comando("disk", "Uso de disco", disk.handle),
-    Comando("top", "Processos que mais consomem", top.handle),
-    Comando("uptime", "Há quanto tempo o host está no ar", uptime.handle),
+    Comando("cpu", cpu.handle),
+    Comando("memory", memory.handle),
+    Comando("disk", disk.handle),
+    Comando("top", top.handle),
+    Comando("uptime", uptime.handle),
 
-    Comando("docker", "Status dos containers", docker.handle),
-    Comando("services", "Serviços systemd", services.handle),
-    Comando("failed", "Unidades systemd em falha", failed.handle),
-    Comando("container", "Consumo de um container", container.handle),
-    Comando("docker_logs", "Últimas linhas do log de um container",
-            docker_logs.handle),
-    Comando("security", "Dashboard de segurança", security.handle),
-    Comando("ports", "Portas escutando", ports.handle),
-    Comando("fail2ban", "Status do Fail2Ban", fail2ban.handle),
-    Comando("sessions", "Sessões SSH ativas", sessions.handle),
+    Comando("docker", docker.handle),
+    Comando("services", services.handle),
+    Comando("failed", failed.handle),
+    Comando("container", container.handle),
+    Comando("docker_logs", docker_logs.handle),
+    Comando("security", security.handle),
+    Comando("ports", ports.handle),
+    Comando("fail2ban", fail2ban.handle),
+    Comando("sessions", sessions.handle),
 
-    Comando("alerts", "Configuração de alertas", alerts.handle),
-    Comando("watch", "Monitoramentos ativos", watch.handle),
-    Comando("suspender", "Suspender instância (com confirmação)", suspender.handle),
-    Comando("reiniciar", "Reiniciar instância (com confirmação)", reiniciar.handle),
-    Comando("reativar", "Ligar instância parada (com confirmação)", reativar.handle),
+    Comando("alerts", alerts.handle),
+    Comando("watch", watch.handle),
+
+    # Os nomes em português vieram primeiro e seguem válidos como apelidos:
+    # renomear um comando não pode quebrar quem já o digita de memória.
+    Comando("stop", suspender.handle, apelidos=("suspender",)),
+    Comando("restart", reiniciar.handle, apelidos=("reiniciar",)),
+    Comando("poweron", reativar.handle, apelidos=("reativar",)),
 )
 
-# Despacho por nome, montado uma vez.
-POR_NOME: dict[str, Comando] = {c.nome: c for c in COMANDOS}
+# Despacho por nome e por apelido, montado uma vez.
+POR_NOME: dict[str, Comando] = {}
+for _c in COMANDOS:
+    POR_NOME[_c.nome] = _c
+    for _apelido in _c.apelidos:
+        POR_NOME[_apelido] = _c
 
 
 def visiveis() -> Iterable[Comando]:
     return (c for c in COMANDOS if not c.oculto)
 
 
-def para_telegram() -> list[dict]:
-    """Payload do setMyCommands."""
-    return [{"command": c.nome, "description": c.descricao} for c in visiveis()]
+def para_telegram(idioma: str | None = None) -> list[dict]:
+    """Payload do setMyCommands, opcionalmente num idioma específico."""
+    from ...i18n import definir_idioma, idioma_atual
+
+    if idioma is None:
+        return [{"command": c.nome, "description": c.descricao}
+                for c in visiveis()]
+
+    anterior = idioma_atual()
+    definir_idioma(idioma)
+    try:
+        return [{"command": c.nome, "description": c.descricao}
+                for c in visiveis()]
+    finally:
+        definir_idioma(anterior)
 
 
 def texto_de_ajuda() -> str:

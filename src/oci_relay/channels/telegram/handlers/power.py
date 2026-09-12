@@ -31,24 +31,24 @@ class AcaoEnergia:
 
 
 ACOES: dict[str, AcaoEnergia] = {
-    "/suspender": AcaoEnergia(
-        comando="/suspender",
+    "/stop": AcaoEnergia(
+        comando="/stop",
         acao_oci="SOFTSTOP",
         chave_titulo="power.suspend_title",
         chave_efeito="power.suspend_effect",
         estados_validos=("RUNNING",),
         estado_resultante="STOPPED",
     ),
-    "/reiniciar": AcaoEnergia(
-        comando="/reiniciar",
+    "/restart": AcaoEnergia(
+        comando="/restart",
         acao_oci="SOFTRESET",
         chave_titulo="power.restart_title",
         chave_efeito="power.restart_effect",
         estados_validos=("RUNNING",),
         estado_resultante="RUNNING",
     ),
-    "/reativar": AcaoEnergia(
-        comando="/reativar",
+    "/poweron": AcaoEnergia(
+        comando="/poweron",
         acao_oci="START",
         chave_titulo="power.start_title",
         chave_efeito="power.start_effect",

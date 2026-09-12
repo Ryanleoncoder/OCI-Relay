@@ -4,9 +4,17 @@ import oci
 
 from ....i18n import t
 from ....oci import network
+from ....oci.network import TODAS_AS_PORTAS
 from .. import formatter as fmt
 
 _LIMITE_REGRAS = 15
+
+
+def _portas(regra: dict) -> str:
+    """Faixa de portas da regra, com o caso irrestrito traduzido."""
+    if regra["portas"] == TODAS_AS_PORTAS:
+        return t("network.all_ports")
+    return regra["portas"]
 
 
 async def handle(client, token: str, chat_id: int,
@@ -48,7 +56,7 @@ async def handle(client, token: str, chat_id: int,
             partes.append(fmt.secao(t("network.ingress", count=len(entradas))))
             partes.append(fmt.bloco([
                 f"{fmt.AVISO if r['aberta'] else fmt.OK} "
-                f"{r['origem']:<18} {r['protocolo']:<6} {r['portas']}"
+                f"{r['origem']:<18} {r['protocolo']:<6} {_portas(r)}"
                 for r in entradas[:_LIMITE_REGRAS]
             ]))
 
@@ -63,7 +71,7 @@ async def handle(client, token: str, chat_id: int,
             # Protocolo junto da porta: "ICMP todas" e "TCP 22" são coisas
             # bem diferentes, e listar só as portas confunde as duas.
             descricoes = sorted({
-                r["protocolo"] if r["portas"] == "todas"
+                r["protocolo"] if r["portas"] == TODAS_AS_PORTAS
                 else f"{r['protocolo']} {r['portas']}"
                 for r in abertas
             })
