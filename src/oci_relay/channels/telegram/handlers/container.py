@@ -12,14 +12,26 @@ def _percentual_cpu(stats: dict) -> float | None:
 
     O Docker entrega contadores acumulados; a fração é a variação do tempo
     gasto pelo container sobre a variação do tempo total do sistema.
+
+    Numa leitura sem streaming o daemon pode devolver a amostra anterior
+    zerada. Sem ela não há delta: o cálculo tomaria o acumulado desde o
+    início do container como se fosse consumo do instante. Nesse caso é
+    melhor omitir o valor do que mostrar um número errado.
     """
     try:
         cpu = stats["cpu_stats"]
         anterior = stats["precpu_stats"]
-        delta = cpu["cpu_usage"]["total_usage"] - anterior["cpu_usage"]["total_usage"]
-        delta_sistema = cpu["system_cpu_usage"] - anterior["system_cpu_usage"]
-        if delta_sistema <= 0:
+
+        usado_antes = anterior["cpu_usage"]["total_usage"]
+        sistema_antes = anterior.get("system_cpu_usage", 0)
+        if not usado_antes or not sistema_antes:
             return None
+
+        delta = cpu["cpu_usage"]["total_usage"] - usado_antes
+        delta_sistema = cpu["system_cpu_usage"] - sistema_antes
+        if delta_sistema <= 0 or delta < 0:
+            return None
+
         nucleos = cpu.get("online_cpus") or 1
         return round(delta / delta_sistema * nucleos * 100, 1)
     except (KeyError, TypeError, ZeroDivisionError):

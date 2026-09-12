@@ -1,17 +1,14 @@
 """Handler /uptime."""
 
 import asyncio
-import datetime as dt
-
-import psutil
 
 from ....i18n import t
-from ....system import get_uptime
+from ....system import get_boot_time, get_uptime
 from .. import formatter as fmt
 
 
-def _coletar() -> tuple[int, dt.datetime]:
-    return get_uptime(), dt.datetime.fromtimestamp(psutil.boot_time())
+def _coletar() -> tuple[int, str]:
+    return get_uptime(), get_boot_time().strftime("%Y-%m-%d %H:%M")
 
 
 async def handle(client, token: str, chat_id: int,
@@ -27,7 +24,7 @@ async def handle(client, token: str, chat_id: int,
             "",
             fmt.tabela([
                 (t("uptime.up_for"), fmt.uptime(segundos)),
-                (t("uptime.booted"), boot.strftime("%Y-%m-%d %H:%M")),
+                (t("uptime.booted"), boot),
             ]),
         ]))
     except Exception as e:
