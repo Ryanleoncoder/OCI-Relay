@@ -1,0 +1,46 @@
+[Unit]
+Description=OCI Relay — companion operacional para VPS na OCI
+Documentation=https://github.com/Ryanleoncoder/OCI-Relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/oci-relay
+ExecStart=/opt/oci-relay/.venv/bin/python -m oci_relay
+
+# O .env fica fora da árvore do código para não ser sobrescrito por git pull.
+Environment=OCI_RELAY_ENV_FILE=/etc/oci-relay/.env
+Environment=OCI_RELAY_STATE_DIR=/var/lib/oci-relay
+Environment=PYTHONUNBUFFERED=1
+
+Restart=always
+RestartSec=10
+# Desiste se falhar 5 vezes em 5 minutos, em vez de reiniciar em loop.
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=oci-relay
+
+# ── Endurecimento ────────────────────────────────────────────────────────
+# O Relay só lê o sistema e fala com APIs externas; não precisa escrever
+# em lugar nenhum além do próprio diretório de estado.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/oci-relay
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

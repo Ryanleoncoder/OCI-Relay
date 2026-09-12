@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Chaves privadas / credenciais OCI
+*.pem
+*.key
+*.p12
+.oci/
+# Arquivos de documentação
+docs/OCI-Relay-v0.1*
+docs/*Plano*
+docs/*plano*
+docs/research/
+docs/internal/
+
+# IDE / ferramentas
+.vscode/
+.idea/
+.claude/
+.pytest_cache/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/

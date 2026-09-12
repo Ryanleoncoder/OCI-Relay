@@ -1,0 +1,1 @@
+"""Webhook Discord para alertas."""

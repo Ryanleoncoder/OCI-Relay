@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oci-relay"
+version = "0.1.0"
+description = "Companion operacional para VPS na Oracle Cloud Infrastructure"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = [
+    "oci>=2.130.0",
+    "httpx>=0.28.1,<1.0.0",
+    "psutil>=6.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.12.5,<3.0.0",
+]
+
+[project.scripts]
+oci-relay = "oci_relay.main:run"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = [
+    "oci_relay",
+    "oci_relay.channels",
+    "oci_relay.channels.discord",
+    "oci_relay.channels.telegram",
+    "oci_relay.channels.telegram.handlers",
+    "oci_relay.config",
+    "oci_relay.docker",
+    "oci_relay.oci",
+    "oci_relay.security",
+    "oci_relay.state",
+    "oci_relay.system",
+]

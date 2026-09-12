@@ -1,0 +1,9 @@
+-r requirements.txt
+
+# Testes
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+
+# Lint
+flake8>=6.0.0
+black>=23.0.0
