@@ -40,7 +40,7 @@ def _criar_schema(conn: sqlite3.Connection):
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS alerts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,7 +50,7 @@ def _criar_schema(conn: sqlite3.Connection):
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cooldowns (
             watcher TEXT PRIMARY KEY,
@@ -58,7 +58,28 @@ def _criar_schema(conn: sqlite3.Connection):
             state TEXT DEFAULT 'normal'
         )
     """)
-    
+
+    # Confirmações pendentes precisam sobreviver a restart: sem isso, um
+    # reinício invalidaria uma confirmação em aberto ou, pior, permitiria
+    # reaproveitar um nonce já usado.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS confirmations (
+            nonce TEXT PRIMARY KEY,
+            actor_id INTEGER NOT NULL,
+            chat_id INTEGER NOT NULL,
+            comando TEXT NOT NULL,
+            alvo TEXT,
+            estado TEXT NOT NULL,
+            criado_em TEXT NOT NULL,
+            expira_em TEXT NOT NULL,
+            resolvido_em TEXT
+        )
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_confirmations_estado
+        ON confirmations (estado, expira_em)
+    """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS audit_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,7 +144,8 @@ def set_cooldown(watcher: str, state: str, last_alert: str | None = None):
     cursor = conn.cursor()
     if last_alert:
         cursor.execute(
-            "INSERT OR REPLACE INTO cooldowns (watcher, state, last_alert) VALUES (?, ?, ?)",
+            "INSERT OR REPLACE INTO cooldowns (watcher, state, last_alert)"
+            " VALUES (?, ?, ?)",
             (watcher, state, last_alert)
         )
     else:

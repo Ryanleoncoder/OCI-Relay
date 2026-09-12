@@ -1,11 +1,9 @@
 """Handler /suspender."""
 
-from .. import formatter as fmt
+from . import power
 
 
 async def handle(client, token: str, chat_id: int,
                  actor_id: int | None = None):
-    """Responde que o recurso ainda não foi implementado."""
-    from ..adapter import tg_send_text
-    await tg_send_text(client, token, chat_id,
-        fmt.nao_implementado("Suspensão da instância"))
+    """Mostra a prévia e pede confirmação antes de agir."""
+    await power.pedir_confirmacao(client, token, chat_id, actor_id, "/suspender")

@@ -14,7 +14,7 @@ from typing import Callable, Iterable
 
 from .handlers import (
     alerts, cpu, disk, docker, fail2ban, health, memory, network, oci_ip,
-    ports, reiniciar, security, services, sessions, status,
+    ports, reativar, reiniciar, security, services, sessions, status,
     summary, suspender, top, usage, watch,
 )
 
@@ -54,6 +54,7 @@ COMANDOS: tuple[Comando, ...] = (
     Comando("watch", "Monitoramentos ativos", watch.handle),
     Comando("suspender", "Suspender instância (com confirmação)", suspender.handle),
     Comando("reiniciar", "Reiniciar instância (com confirmação)", reiniciar.handle),
+    Comando("reativar", "Ligar instância parada (com confirmação)", reativar.handle),
 )
 
 # Despacho por nome, montado uma vez.

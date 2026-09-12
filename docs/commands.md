@@ -173,16 +173,50 @@ Somente leitura — não é possível banir, desbanir ou recarregar pelo bot.
 
 ---
 
+## Ações de energia — *OCI*
+
+`/suspender` · `/reiniciar` · `/reativar`
+
+Nenhuma executa direto. O fluxo é sempre o mesmo:
+
+```
+comando → pré-voo → prévia → confirmação → execução
+```
+
+**Pré-voo** rejeita ação sem sentido: parar máquina já parada, ligar máquina
+já ligada. Isso é engano, não intenção.
+
+**Prévia** mostra o estado real da instância, a ação que será enviada e o
+resultado esperado — para a decisão ser tomada com o dado à vista, não de
+memória.
+
+**Confirmação** vale por 90 segundos, só para quem pediu, e uma única vez.
+Clique duplo não executa duas vezes, e botão esquecido na conversa não
+desliga a máquina meia hora depois.
+
+| Comando | Ação OCI | Exige | Resultado |
+|---|---|---|---|
+| `/suspender` | `SOFTSTOP` | `RUNNING` | `STOPPED` |
+| `/reiniciar` | `SOFTRESET` | `RUNNING` | `RUNNING` |
+| `/reativar` | `START` | `STOPPED` | `RUNNING` |
+
+Só as variantes graciosas. `STOP` e `RESET` abruptos equivalem a cortar a
+energia e podem corromper o sistema de arquivos — não são oferecidos.
+
+A confirmação de sucesso traz o `opc-request-id`, que liga a execução ao
+registro correspondente no Audit da OCI.
+
+> **Se o Relay rodar na própria instância**, a prévia do `/suspender` avisa
+> em vermelho: o bot morre junto com a máquina e só o console da OCI religa.
+> Ver [SECURITY.md](../SECURITY.md).
+
+---
+
 ## Ainda não implementados
 
 Respondem avisando, para não parecerem quebrados:
 
-`/sessions` · `/watch` · `/alerts` · `/suspender` · `/reiniciar`
-
-`/suspender` e `/reiniciar` dependem de um confirmation manager com nonce,
-TTL e proteção contra replay, além do tratamento de `callback_query` no
-adapter para os botões de confirmação. Nenhuma ação de mutação entra antes
-disso.
+`/sessions` · `/watch` · `/alerts`
 
 ---
 

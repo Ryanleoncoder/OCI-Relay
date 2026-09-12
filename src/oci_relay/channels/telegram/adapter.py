@@ -190,6 +190,70 @@ async def tg_send_text(client, token: str, chat_id: int, text: str) -> None:
             })
 
 
+# Mensagem mostrada quando uma confirmação não pode ser aceita.
+_RECUSAS = {
+    "desconhecida": "Confirmação não encontrada.",
+    "expirada": "Confirmação expirada. Repita o comando.",
+    "outro_ator": "Só quem pediu a ação pode confirmá-la.",
+    "ja_resolvida": "Esta confirmação já foi respondida.",
+}
+
+
+def _executores() -> dict:
+    """Ações executáveis após confirmação.
+
+    Import tardio: os handlers importam o adapter, e resolver isso no
+    topo fecharia um ciclo. Comando ausente daqui é recusado em vez de
+    executar algo inesperado.
+    """
+    from .handlers import power
+    return {comando: power.executar for comando in power.ACOES}
+
+
+async def tg_send_confirmation(client, token: str, chat_id: int, texto: str,
+                               nonce: str) -> None:
+    """Envia um pedido de confirmação com os botões de decisão.
+
+    O nonce viaja no callback_data: o clique identifica exatamente qual
+    confirmação está sendo respondida, sem depender de ordem nem de estado
+    na memória do processo.
+    """
+    await _tg_post(client, token, "sendMessage", json={
+        "chat_id": chat_id,
+        "text": _markdown_to_telegram_html(texto),
+        "parse_mode": "HTML",
+        "reply_markup": {"inline_keyboard": [[
+            {"text": "✅ Confirmar", "callback_data": f"ok:{nonce}"},
+            {"text": "✖️ Cancelar", "callback_data": f"no:{nonce}"},
+        ]]},
+    })
+
+
+async def tg_answer_callback(client, token: str, callback_id: str,
+                             texto: str = "") -> None:
+    """Encerra o estado de carregamento do botão.
+
+    Sem esta chamada o Telegram deixa o botão girando por alguns segundos,
+    e o usuário tende a clicar de novo.
+    """
+    await _tg_post(client, token, "answerCallbackQuery", json={
+        "callback_query_id": callback_id,
+        "text": texto[:200],
+    })
+
+
+async def tg_edit_message(client, token: str, chat_id: int, message_id: int,
+                          texto: str) -> None:
+    """Reescreve a mensagem e remove os botões já usados."""
+    await _tg_post(client, token, "editMessageText", json={
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": _markdown_to_telegram_html(texto),
+        "parse_mode": "HTML",
+        "reply_markup": {"inline_keyboard": []},
+    })
+
+
 class TelegramBotManager:
     def __init__(self):
         self.running = False
@@ -279,6 +343,90 @@ class TelegramBotManager:
         allowed = settings.telegram_allowed_ids
         return not allowed or chat_id in allowed or from_id in allowed
 
+    def _ator_autorizado(self, from_id: int | None) -> bool:
+        """Autoriza um clique, exigindo a pessoa e não o chat.
+
+        Num grupo autorizado, `chat_id in allowed` valeria para qualquer
+        membro — e botão de confirmação decide ação destrutiva, então o que
+        importa é quem clicou.
+        """
+        allowed = settings.telegram_allowed_ids
+        return not allowed or from_id in allowed
+
+    async def _handle_callback(self, token: str, client, callback: dict):
+        """Processa o clique num botão de confirmação."""
+        callback_id = callback["id"]
+        from_id = callback.get("from", {}).get("id")
+        dados = callback.get("data") or ""
+        mensagem = callback.get("message") or {}
+        chat_id = mensagem.get("chat", {}).get("id")
+        message_id = mensagem.get("message_id")
+
+        if not self._ator_autorizado(from_id):
+            logger.warning("Callback ignorado de %s (fora da whitelist)", from_id)
+            await tg_answer_callback(client, token, callback_id, "Não autorizado.")
+            return
+
+        acao, _, nonce = dados.partition(":")
+        if acao not in ("ok", "no") or not nonce:
+            await tg_answer_callback(client, token, callback_id,
+                                     "Botão não reconhecido.")
+            return
+
+        from ...safety import confirmation as conf
+
+        resolver = conf.confirmar if acao == "ok" else conf.cancelar
+        confirmacao, recusa = await asyncio.to_thread(resolver, nonce, from_id)
+
+        if recusa is not None:
+            aviso = _RECUSAS[recusa.value]
+            await tg_answer_callback(client, token, callback_id, aviso)
+            # Recusa por outro ator não altera a mensagem: a confirmação
+            # segue pendente para quem de fato pediu.
+            if recusa is not conf.Recusa.OUTRO_ATOR and message_id:
+                await tg_edit_message(client, token, chat_id, message_id,
+                                      f"✖️ {aviso}")
+            return
+
+        if acao == "no":
+            await tg_answer_callback(client, token, callback_id, "Cancelado.")
+            await tg_edit_message(client, token, chat_id, message_id,
+                                  "✖️ Ação cancelada.")
+            return
+
+        await tg_answer_callback(client, token, callback_id, "Confirmado.")
+        await self._executar_confirmada(client, token, confirmacao, message_id)
+
+    async def _executar_confirmada(self, client, token: str, confirmacao,
+                                   message_id: int | None):
+        """Roda a ação aprovada e reporta o desfecho na mesma mensagem."""
+        from ...safety import confirmation as conf
+
+        executor = _executores().get(confirmacao.comando)
+        if executor is None:
+            logger.error("Sem executor para %s", confirmacao.comando)
+            await asyncio.to_thread(
+                conf.marcar_resultado, confirmacao.nonce, False)
+            await tg_edit_message(client, token, confirmacao.chat_id, message_id,
+                                  "⚠️ Ação confirmada, mas não há executor.")
+            return
+
+        try:
+            texto = await executor(confirmacao)
+            sucesso = True
+        except Exception as e:
+            logger.error("Falha ao executar %s: %s", confirmacao.comando, e)
+            texto = f"🔴 A ação falhou: {e}"
+            sucesso = False
+
+        await asyncio.to_thread(conf.marcar_resultado, confirmacao.nonce, sucesso)
+
+        if message_id:
+            await tg_edit_message(client, token, confirmacao.chat_id,
+                                  message_id, texto)
+        else:
+            await tg_send_text(client, token, confirmacao.chat_id, texto)
+
     async def _flush_buffer(self, token: str, client, chat_id: int):
         try:
             await asyncio.sleep(_COALESCE_WINDOW)
@@ -318,6 +466,10 @@ class TelegramBotManager:
                         msg = update.get("message")
                         if msg and "text" in msg:
                             await self._handle_message(token, client, msg)
+
+                        callback = update.get("callback_query")
+                        if callback:
+                            await self._handle_callback(token, client, callback)
 
                 except asyncio.CancelledError:
                     logger.info("Telegram polling cancelado.")

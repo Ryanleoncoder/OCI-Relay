@@ -1,5 +1,8 @@
 # OCI Relay
 
+[![CI](https://github.com/Ryanleoncoder/OCI-Relay/actions/workflows/ci.yml/badge.svg)](https://github.com/Ryanleoncoder/OCI-Relay/actions/workflows/ci.yml)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
+
 Companion operacional para VPS na Oracle Cloud Infrastructure, controlado pelo Telegram.
 
 Abra o Telegram e pergunte: a VPS está de pé? quanto de CPU está usando? a Oracle começou a cobrar? Sem console, sem SSH.
@@ -52,6 +55,7 @@ O projeto está em v0.1, em desenvolvimento.
 | `/health` | CPU, memória, load e I/O da VPS via OCI Monitoring |
 | `/usage` | Custo reportado no mês, por serviço, com budgets |
 | `/oci_ip` | IP público e privado |
+| `/suspender`, `/reiniciar`, `/reativar` | Ações de energia, com confirmação |
 | `/network` | VCN, subnet, regras de entrada e rotas |
 
 ### Funcionando, mas medindo o host local
@@ -68,7 +72,7 @@ Dependem de `fail2ban-client`, `systemctl` e do daemon do Docker. O código exis
 
 ### Ainda não implementados
 
-Respondem avisando, para não parecerem quebrados: `/sessions` · `/watch` · `/alerts` · `/suspender` · `/reiniciar`
+Respondem avisando, para não parecerem quebrados: `/sessions` · `/watch` · `/alerts`
 
 Fora do código por enquanto: `/shape`, `/oci_events`, `/uptime`, `/failed`, `/container`, `/docker_logs`, `/bans`, `/attacks`, `/ssh_logins`, `/updates`, `/certs`, `/backup_status`, `/resize`, detecção de drift e o motor de alertas.
 
@@ -129,7 +133,7 @@ O startup valida a configuração antes de qualquer chamada e reporta problemas 
 
 - **Allowlist por `chat_id`.** Quem não está na lista é ignorado e a tentativa fica registrada. Username nunca é usado como identidade.
 - **Sem shell remoto.** Não existe `/exec`, `/bash` ou equivalente, e isso é deliberado. Chamadas a `systemctl` e `fail2ban-client` usam lista de argumentos fixa, nunca `shell=True`.
-- **Somente leitura, por ora.** Nenhuma operação de mutação está implementada. `/suspender` e `/reiniciar` só entram depois do confirmation manager com nonce e TTL.
+- **Ações de energia exigem confirmação.** `/suspender`, `/reiniciar` e `/reativar` mostram uma prévia com o estado real e só executam após aprovação do próprio autor, com nonce de uso único e validade de 90s. Apenas `SOFTSTOP`, `SOFTRESET` e `START` — as variantes abruptas podem corromper o sistema de arquivos e não são oferecidas.
 - **Token redigido nos logs.** Um filtro remove o token do bot das URLs antes de qualquer log sair.
 - **Menor privilégio.** O desenho pede leitura de instance/usage/monitoring/audit e escrita apenas de `InstanceAction`. Não conceda `manage all-resources`.
 
@@ -139,9 +143,11 @@ O startup valida a configuração antes de qualquer chamada e reporta problemas 
 
 ```bash
 pip install -r requirements-dev.txt
-python -m pytest          # 405 testes
-python -m flake8 src/
+python -m pytest
+python -m flake8 src/ tests/
 ```
+
+O CI roda os dois no Linux, em Python 3.10 e 3.13, a cada push.
 
 A suíte cobre parsing de configuração, validação de OCID, formatação das mensagens, os coletores locais, as consultas ao Monitoring e o contrato dos handlers — todo handler precisa responder algo e nunca estourar exceção para o loop de polling.
 

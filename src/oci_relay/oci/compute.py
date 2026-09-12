@@ -64,3 +64,27 @@ def _fetch_ips() -> dict:
 async def get_instance_ips() -> dict:
     """Obtém IP público e privado da instância."""
     return await asyncio.to_thread(_fetch_ips)
+
+
+# Ações de energia que o Relay pode executar. As variantes abruptas — STOP e
+# RESET — equivalem a cortar a energia e podem corromper o sistema de
+# arquivos, então não são oferecidas.
+ACOES_PERMITIDAS = frozenset({"SOFTSTOP", "SOFTRESET", "START"})
+
+
+def _executar_acao(acao: str):
+    return get_compute_client().instance_action(
+        settings.oci_instance_ocid, acao)
+
+
+async def instance_action(acao: str) -> str:
+    """Executa uma ação de energia e devolve o opc-request-id.
+
+    O identificador da requisição é o que liga esta chamada ao registro no
+    Audit da OCI quando for preciso reconstruir o que aconteceu.
+    """
+    if acao not in ACOES_PERMITIDAS:
+        raise ValueError(f"ação não permitida: {acao}")
+
+    resposta = await asyncio.to_thread(_executar_acao, acao)
+    return getattr(resposta, "request_id", "") or ""

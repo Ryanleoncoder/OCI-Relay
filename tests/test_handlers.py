@@ -22,8 +22,7 @@ TODOS = [
     ("reiniciar", reiniciar),
 ]
 
-STUBS = [("sessions", sessions), ("watch", watch), ("alerts", alerts),
-         ("suspender", suspender), ("reiniciar", reiniciar)]
+STUBS = [("sessions", sessions), ("watch", watch), ("alerts", alerts)]
 
 
 @pytest.mark.parametrize("nome,mod", TODOS)

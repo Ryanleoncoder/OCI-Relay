@@ -1,8 +1,8 @@
 # Segurança
 
-O OCI Relay dá a uma conta de Telegram visibilidade sobre uma VPS e, no
-futuro, poder de desligá-la. Este documento descreve o que o projeto faz
-para limitar o estrago se algo der errado, e o que ainda não faz.
+O OCI Relay dá a uma conta de Telegram visibilidade sobre uma VPS e poder
+de ligá-la e desligá-la. Este documento descreve o que o projeto faz para
+limitar o estrago se algo der errado, e o que ainda não faz.
 
 ## Reportar uma vulnerabilidade
 
@@ -18,7 +18,7 @@ O que estamos protegendo, e de quem.
 | Ameaça | Mitigação |
 |---|---|
 | Alguém encontra o bot e o usa | Allowlist por `chat_id`; desconhecidos são ignorados |
-| Conta de Telegram comprometida | Sem shell remoto; sem mutação implementada |
+| Conta de Telegram comprometida | Sem shell remoto; ações de energia exigem confirmação do autor |
 | Credencial OCI vazada | Instance Principal não guarda chave; policy de menor privilégio |
 | Token vazado em log | Redação automática nas URLs |
 | Comando injetando shell | `shell=False` com lista de argumentos fixa |
@@ -67,7 +67,7 @@ virtual-network-family, audit-events e usage-reports.
 
 Não conceda `manage all-resources`, nem `manage instance-family`. Esse verbo
 inclui criar, terminar e reconfigurar instâncias — muito além de ligar e
-desligar. Quando as ações de energia existirem, a permissão correta é:
+desligar. Para as ações de energia, a permissão necessária é apenas:
 
 ```
 Allow dynamic-group oci-relay-group to use instance-family in compartment root
@@ -104,10 +104,10 @@ só responde de dentro de uma instância, e **compara** o OCID retornado com
 `OCI_INSTANCE_OCID`. A comparação importa: rodar na VPS A monitorando a VPS
 B mantém tudo reversível.
 
-O resultado aparece no startup, e vai condicionar o pré-voo das ações de
-energia quando elas forem implementadas. Na dúvida — metadados
-inalcançáveis, timeout, resposta inesperada — a detecção assume "não estou
-na instância alvo". O que se perde é o aviso extra, não a segurança da ação.
+O resultado aparece no startup e na prévia de cada ação de energia. Na
+dúvida — metadados inalcançáveis, timeout, resposta inesperada — a detecção
+assume "não estou na instância alvo". O que se perde é o aviso extra, não a
+segurança da ação, que continua exigindo confirmação.
 
 > **Consequência adicional:** se o IP público da instância for `EPHEMERAL`
 > (o padrão da OCI), pará-la e religá-la devolve **outro IP**. Qualquer DNS,
@@ -149,10 +149,9 @@ mais lugar nenhum.
 
 - **Sem rate limiting por chat.** Um usuário autorizado pode disparar
   comandos em sequência e consumir cota da API da OCI.
-- **Sem audit log ativo.** O schema existe em `state/`, mas nada escreve
-  nele ainda.
-- **Sem confirmation manager.** Por isso nenhuma ação de mutação está
-  implementada — e não deve ser adicionada antes dele.
+- **Audit log parcial.** Cada confirmação fica registrada com autor,
+  comando, alvo e desfecho, mas a tabela `audit_log` dedicada ainda não é
+  escrita.
 - **Comandos locais não testados numa VPS.** `/docker`, `/services`,
   `/security` e `/fail2ban` nunca rodaram num host com essas dependências.
 - **Sem verificação de integridade de dependências.** O projeto usa
