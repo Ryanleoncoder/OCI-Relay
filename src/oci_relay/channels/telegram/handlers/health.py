@@ -3,6 +3,7 @@
 import asyncio
 
 from ....config.settings import settings
+from ....i18n import t
 from ....oci import compute, monitoring
 from ....system import get_health as get_health_local
 from .. import formatter as fmt
@@ -30,39 +31,39 @@ async def _painel_vps(client, token: str, chat_id: int):
         settings.alert_memory_critical_percent)
 
     partes = [
-        fmt.titulo("🩺", f"Health — {status.display_name}"),
+        fmt.cabecalho(t("health.title_vps", name=status.display_name or "n/d")),
         "",
         fmt.tabela([
-            ("State", f"{e_estado} {status.state}"),
-            ("Shape", status.shape or "n/d"),
-            ("OCPU", fmt.gb(status.ocpus)),
-            ("Memory", f"{fmt.gb(status.memory_gb)} GB"),
+            (t("instance.state"), f"{e_estado} {status.state}"),
+            (t("instance.shape"), status.shape or "n/d"),
+            (t("instance.ocpu"), fmt.gb(status.ocpus)),
+            (t("instance.memory"), f"{fmt.gb(status.memory_gb)} GB"),
         ]),
-        fmt.secao("Utilização"),
+        fmt.secao(t("health.utilisation")),
         fmt.tabela([
-            ("CPU", f"{e_cpu} {_pct(metricas['cpu'])}"),
-            ("Memory", f"{e_mem} {_pct(metricas['memory'])}"),
-            ("Load", "n/d" if metricas["load"] is None
-                     else f"{metricas['load']:.2f}"),
+            (t("summary.cpu"), f"{e_cpu} {_pct(metricas['cpu'])}"),
+            (t("instance.memory"), f"{e_mem} {_pct(metricas['memory'])}"),
+            (t("summary.load"), "n/d" if metricas["load"] is None
+                                else f"{metricas['load']:.2f}"),
         ]),
     ]
 
     io = [
-        ("Disk read", metricas["disk_read"]),
-        ("Disk write", metricas["disk_write"]),
-        ("Net in", metricas["net_in"]),
-        ("Net out", metricas["net_out"]),
+        (t("health.disk_read"), metricas["disk_read"]),
+        (t("health.disk_write"), metricas["disk_write"]),
+        (t("health.net_in"), metricas["net_in"]),
+        (t("health.net_out"), metricas["net_out"]),
     ]
     if any(v is not None for _, v in io):
-        partes.append(fmt.secao("I/O (taxa atual)"))
+        partes.append(fmt.secao(t("health.io")))
         partes.append(fmt.tabela([
             (rotulo, "n/d" if v is None else f"{v / 1024:.1f} KB/s")
             for rotulo, v in io
         ]))
 
     partes += [
-        f"Overall: {fmt.veredito(e_estado, e_cpu, e_mem)}",
-        "__Fonte: OCI Monitoring (1 min de granularidade, com atraso).__",
+        f"{t('common.overall')}: {fmt.veredito(e_estado, e_cpu, e_mem)}",
+        f"__{t('common.source_monitoring')}__",
     ]
 
     await tg_send_text(client, token, chat_id, "\n".join(partes))
@@ -85,24 +86,22 @@ async def _painel_local(client, token: str, chat_id: int):
         disk["percent"], settings.alert_disk_warning_percent,
         settings.alert_disk_critical_percent)
 
-    partes = [
-        fmt.titulo_local("🩺", "Health"),
+    await tg_send_text(client, token, chat_id, "\n".join([
+        fmt.cabecalho_local(t("health.title_local")),
         "",
         fmt.tabela([
-            ("Uptime", fmt.uptime(health["uptime_seconds"])),
-            ("CPU", f"{e_cpu} {cpu['percent']}%"),
-            ("Memory", f"{e_mem} {mem['percent']}%"),
-            ("Disk", f"{e_disk} {disk['percent']}%"),
+            (t("summary.uptime"), fmt.uptime(health["uptime_seconds"])),
+            (t("summary.cpu"), f"{e_cpu} {cpu['percent']}%"),
+            (t("instance.memory"), f"{e_mem} {mem['percent']}%"),
+            (t("summary.disk"), f"{e_disk} {disk['percent']}%"),
         ]),
-        f"Overall: {fmt.veredito(e_cpu, e_mem, e_disk)}",
-        "__OCI não configurada: estes números são da máquina onde o bot roda.__",
-    ]
-
-    await tg_send_text(client, token, chat_id, "\n".join(partes))
+        f"{t('common.overall')}: {fmt.veredito(e_cpu, e_mem, e_disk)}",
+        f"__{t('health.local_notice')}__",
+    ]))
 
 
 async def handle(client, token: str, chat_id: int,
-                 actor_id: int | None = None):
+                 actor_id: int | None = None, args: str = ""):
     """Envia saúde da VPS, ou do host local se a OCI não estiver configurada."""
     from ..adapter import tg_send_text
 
@@ -112,4 +111,5 @@ async def handle(client, token: str, chat_id: int,
         else:
             await _painel_local(client, token, chat_id)
     except Exception as e:
-        await tg_send_text(client, token, chat_id, f"Erro ao obter saúde: {e}")
+        await tg_send_text(client, token, chat_id,
+            t("errors.generic", subject="health", reason=e))

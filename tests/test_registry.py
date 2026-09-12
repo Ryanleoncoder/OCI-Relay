@@ -58,7 +58,7 @@ class TestDefinicoes:
             return
         assert asyncio.iscoroutinefunction(comando.handler)
         parametros = list(inspect.signature(comando.handler).parameters)
-        assert parametros == ["client", "token", "chat_id", "actor_id"]
+        assert parametros == ["client", "token", "chat_id", "actor_id", "args"]
 
     @pytest.mark.parametrize("comando", registry.COMANDOS, ids=lambda c: c.nome)
     def test_handler_recebe_quem_pediu(self, comando):
@@ -66,6 +66,13 @@ class TestDefinicoes:
         if comando.handler is None:
             return
         assert "actor_id" in inspect.signature(comando.handler).parameters
+
+    @pytest.mark.parametrize("comando", registry.COMANDOS, ids=lambda c: c.nome)
+    def test_handler_recebe_argumentos(self, comando):
+        """Comandos como /language e /container leem o resto da mensagem."""
+        if comando.handler is None:
+            return
+        assert "args" in inspect.signature(comando.handler).parameters
 
 
 class TestBusca:

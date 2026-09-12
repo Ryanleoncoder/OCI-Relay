@@ -13,9 +13,10 @@ from dataclasses import dataclass
 from typing import Callable, Iterable
 
 from .handlers import (
-    alerts, cpu, disk, docker, fail2ban, health, memory, network, oci_ip,
-    ports, reativar, reiniciar, security, services, sessions, status,
-    summary, suspender, top, usage, watch,
+    alerts, container, cpu, disk, docker, docker_logs, fail2ban, failed,
+    health, language, memory, network, oci_ip, ports, reativar, reiniciar,
+    security, services, sessions, shape, status, summary, suspender, top,
+    uptime, usage, watch,
 )
 
 
@@ -30,11 +31,13 @@ class Comando:
 COMANDOS: tuple[Comando, ...] = (
     Comando("start", "Iniciar conversa"),
     Comando("help", "Listar comandos disponíveis"),
+    Comando("language", "Trocar o idioma do bot", language.handle),
 
     Comando("summary", "Resumo rápido do sistema", summary.handle),
     Comando("status", "Estado da instância OCI", status.handle),
     Comando("usage", "Custo reportado da tenancy", usage.handle),
     Comando("oci_ip", "IPs público e privado da VPS", oci_ip.handle),
+    Comando("shape", "Shape, OCPU e memória da instância", shape.handle),
     Comando("network", "VCN, subnet e regras de acesso", network.handle),
     Comando("health", "Saúde da VPS (OCI Monitoring)", health.handle),
 
@@ -42,9 +45,14 @@ COMANDOS: tuple[Comando, ...] = (
     Comando("memory", "Uso de RAM", memory.handle),
     Comando("disk", "Uso de disco", disk.handle),
     Comando("top", "Processos que mais consomem", top.handle),
+    Comando("uptime", "Há quanto tempo o host está no ar", uptime.handle),
 
     Comando("docker", "Status dos containers", docker.handle),
     Comando("services", "Serviços systemd", services.handle),
+    Comando("failed", "Unidades systemd em falha", failed.handle),
+    Comando("container", "Consumo de um container", container.handle),
+    Comando("docker_logs", "Últimas linhas do log de um container",
+            docker_logs.handle),
     Comando("security", "Dashboard de segurança", security.handle),
     Comando("ports", "Portas escutando", ports.handle),
     Comando("fail2ban", "Status do Fail2Ban", fail2ban.handle),

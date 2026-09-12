@@ -3,12 +3,13 @@
 import asyncio
 
 from ....config.settings import settings
+from ....i18n import t
 from ....system import get_disks
 from .. import formatter as fmt
 
 
 async def handle(client, token: str, chat_id: int,
-                 actor_id: int | None = None):
+                 actor_id: int | None = None, args: str = ""):
     """Envia uso de disco por ponto de montagem."""
     from ..adapter import tg_send_text
 
@@ -16,8 +17,7 @@ async def handle(client, token: str, chat_id: int,
         discos = await asyncio.to_thread(get_disks)
 
         if not discos:
-            await tg_send_text(client, token, chat_id,
-                "Nenhum ponto de montagem legível encontrado.")
+            await tg_send_text(client, token, chat_id, t("disk.none"))
             return
 
         emojis = [
@@ -34,13 +34,12 @@ async def handle(client, token: str, chat_id: int,
             for d, e in zip(discos, emojis)
         ]
 
-        partes = [
-            fmt.titulo_local("💾", "Disk"),
+        await tg_send_text(client, token, chat_id, "\n".join([
+            fmt.cabecalho_local(t("disk.title")),
             "",
             fmt.bloco(linhas),
-            f"Overall: {fmt.veredito(*emojis)}",
-        ]
-
-        await tg_send_text(client, token, chat_id, "\n".join(partes))
+            f"{t('common.overall')}: {fmt.veredito(*emojis)}",
+        ]))
     except Exception as e:
-        await tg_send_text(client, token, chat_id, f"Erro ao obter disco: {e}")
+        await tg_send_text(client, token, chat_id,
+            t("errors.generic", subject="disk", reason=e))

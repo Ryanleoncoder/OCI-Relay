@@ -6,10 +6,11 @@ import oci
 import pytest
 
 from oci_relay.channels.telegram import adapter
+from oci_relay.i18n import t as msg
 from oci_relay.channels.telegram.handlers import (
     alerts, cpu, disk, docker, fail2ban, health, memory, oci_ip, ports,
-    reiniciar, security, services, sessions, status, summary, suspender,
-    network, top, usage, watch,
+    container, docker_logs, failed, network, reiniciar, security, services,
+    sessions, shape, status, summary, suspender, top, uptime, usage, watch,
 )
 
 TODOS = [
@@ -18,11 +19,13 @@ TODOS = [
     ("docker", docker), ("services", services), ("security", security),
     ("fail2ban", fail2ban), ("oci_ip", oci_ip), ("usage", usage),
     ("network", network), ("top", top), ("sessions", sessions),
+    ("shape", shape), ("uptime", uptime), ("failed", failed),
+    ("container", container), ("docker_logs", docker_logs),
     ("watch", watch), ("alerts", alerts), ("suspender", suspender),
     ("reiniciar", reiniciar),
 ]
 
-STUBS = [("sessions", sessions), ("watch", watch), ("alerts", alerts)]
+STUBS = [("watch", watch), ("alerts", alerts)]
 
 
 @pytest.mark.parametrize("nome,mod", TODOS)
@@ -60,7 +63,7 @@ def test_resposta_renderiza_em_html(nome, mod, enviadas, monkeypatch):
 def test_stub_se_identifica(nome, mod, enviadas):
     asyncio.run(mod.handle(None, "token", 1))
     assert "🚧" in enviadas[0]
-    assert "não implementado" in enviadas[0]
+    assert msg("common.not_implemented").split("{")[0].strip() in enviadas[0]
 
 
 class TestErrosDaOci:

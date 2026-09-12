@@ -216,7 +216,18 @@ registro correspondente no Audit da OCI.
 
 Respondem avisando, para não parecerem quebrados:
 
-`/sessions` · `/watch` · `/alerts`
+`/watch` · `/alerts`
+
+---
+
+## Idioma
+
+`/language` mostra o idioma atual e os disponíveis; `/language pt_BR` troca e
+guarda a escolha para aquela conversa.
+
+Sem escolha explícita, o bot segue o idioma configurado no seu cliente do
+Telegram. Um idioma sem catálogo cai no inglês, e uma variante regional cai
+no idioma base — `pt-pt` encontra `pt_BR`.
 
 ---
 

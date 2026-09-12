@@ -1,0 +1,268 @@
+# Mensagens da interface, português do Brasil.
+#
+# Espelha en.yml. Uma chave faltando aqui cai no inglês; um placeholder
+# perdido na tradução entrega o texto cru ao usuário — os testes conferem
+# as duas coisas.
+#
+# Termos que são valores da API da OCI ficam em inglês de propósito:
+# RUNNING, STOPPED, SOFTSTOP, OCPU, Shape. Traduzi-los divergiria do que o
+# console da Oracle mostra.
+
+features:
+  sessions: "Sessões SSH"
+  watchers: "Monitoramentos"
+  alerts: "Alertas"
+
+common:
+  overall: "Geral"
+  source_monitoring: "Fonte: OCI Monitoring (1 min de granularidade, com atraso)."
+  unavailable: "Indisponível"
+  not_available_here: "Não disponível neste host"
+  none_found: "Nada encontrado"
+  total: "Total"
+  not_implemented: "🚧 {feature} ainda não implementado."
+
+status:
+  healthy: "Saudável"
+  warning: "Atenção"
+  critical: "Crítico"
+  unknown: "Desconhecido"
+
+errors:
+  oci_refused: "A OCI recusou a chamada: HTTP {status} — {message}"
+  oci_unavailable: "OCI indisponível: {reason}"
+  generic: "Não foi possível ler {subject}: {reason}"
+  no_requester: "Não foi possível identificar quem pediu a ação."
+  oci_not_configured: "OCI não configurada."
+
+start:
+  title: "**OCI Relay — Companion Operacional**"
+  available: "Comandos disponíveis:"
+  hint: "Use / para ver a lista de comandos."
+  unknown_command: "Comando desconhecido: {command}"
+  not_a_command: "Envie um comando. Use /help para ver a lista."
+  restricted: "Este bot está em modo restrito. Seu ID não está autorizado."
+
+instance:
+  title: "☁️ Estado da instância"
+  name: "Nome"
+  state: "Estado"
+  shape: "Shape"
+  ocpu: "OCPU"
+  memory: "Memória"
+  region: "Região"
+
+summary:
+  title: "☁️ OCI Relay"
+  oci: "OCI"
+  resources: "Recursos"
+  uptime: "No ar há"
+  cpu: "CPU"
+  ram: "RAM"
+  disk: "Disco"
+  load: "Carga"
+  error: "Não foi possível montar o resumo: {reason}"
+
+health:
+  title_vps: "🩺 Saúde — {name}"
+  title_local: "🩺 Saúde"
+  utilisation: "Utilização"
+  io: "I/O (taxa atual)"
+  disk_read: "Leitura em disco"
+  disk_write: "Escrita em disco"
+  net_in: "Rede entrada"
+  net_out: "Rede saída"
+  local_notice: "OCI não configurada: estes números são da máquina onde o bot roda."
+
+cpu:
+  title: "🔥 CPU"
+  usage: "Uso"
+  cores: "Núcleos"
+  load: "Carga"
+  per_core: "Por núcleo"
+  top: "Maiores consumos de CPU"
+  core: "núcleo {index}"
+
+memory:
+  title: "🧠 Memória"
+  total: "Total"
+  used: "Em uso"
+  available: "Disponível"
+  usage: "Uso"
+  swap: "Swap"
+  top: "Maiores consumos de RAM"
+
+disk:
+  title: "💾 Disco"
+  none: "Nenhum ponto de montagem legível encontrado."
+
+top:
+  title: "🔥 Processos"
+  by_cpu: "Por CPU"
+  by_memory: "Por memória"
+  none: "Nenhum processo visível."
+  normalised: "Percentual de CPU normalizado pelo número de núcleos."
+
+ports:
+  title: "🌐 Portas em escuta"
+  none: "Nada em escuta."
+  public: "Públicas {emoji} ({count})"
+  localhost: "Localhost ({count})"
+  total: "Total: {count} portas"
+  limited: "Processos marcados com '?' pertencem a outros usuários: identificá-los exige root."
+
+network:
+  title: "🌐 Rede"
+  vcn: "VCN"
+  subnet: "Subnet"
+  kind: "Tipo"
+  public_subnet: "pública"
+  private_subnet: "privada"
+  public_ip: "IP público"
+  private_ip: "IP privado"
+  no_ip: "nenhum"
+  ingress: "Entrada ({count} regras)"
+  egress_rules: "Regras de saída"
+  routes: "Rotas"
+  nsgs: "NSGs"
+  none: "nenhum"
+  open_to_world: "{emoji} Aberto a qualquer origem: {rules}."
+  no_vnic: "Nenhuma VNIC primária encontrada."
+
+oci_ip:
+  title: "🌐 IPs da OCI"
+  public: "Público"
+  private: "Privado"
+  hostname: "Hostname"
+  nsgs: "NSGs"
+  no_public: "sem IP público"
+  no_vnic: "Nenhuma VNIC primária encontrada."
+
+usage:
+  title: "💳 Custo na OCI"
+  period: "Período: {period}"
+  total: "Total"
+  by_service: "Por serviço"
+  budgets: "Orçamentos"
+  delayed: "Os dados de faturamento da OCI são consolidados com atraso; este não é o custo deste instante."
+
+docker:
+  title: "🐳 Docker"
+  running: "Em execução"
+  stopped: "Parados"
+  restarting: "Reiniciando"
+  containers: "Containers"
+  none: "Nenhum container encontrado."
+
+services:
+  title: "⚙️ Serviços"
+  critical: "Críticos"
+  running_count: "Em execução"
+  failed_count: "Em falha"
+  failures: "Falhas"
+  running: "Em execução"
+  and_more: "... e mais {count} serviços."
+  no_systemd: "systemd não disponível neste host."
+
+security:
+  title: "🛡️ Segurança"
+  fail2ban: "Fail2Ban"
+  ssh: "SSH"
+  failed_logins: "Logins falhos (24h)"
+  logs_unavailable: "Logs de SSH não disponíveis neste host"
+  network: "Rede"
+  listening: "Portas em escuta"
+  public: "Públicas"
+
+fail2ban:
+  title: "🛡️ Fail2Ban"
+  service: "Serviço"
+  jails: "Jails"
+  active: "ativo"
+  inactive: "inativo"
+  not_installed: "não instalado neste host"
+  error: "erro ao consultar"
+
+power:
+  suspend_title: "🛑 Suspender instância"
+  restart_title: "🔄 Reiniciar instância"
+  start_title: "▶️ Ligar instância"
+  instance: "Instância"
+  state: "Estado"
+  action: "Ação"
+  result: "Resultado"
+  suspend_effect: "A máquina desliga. Nada roda enquanto estiver parada."
+  restart_effect: "A máquina reinicia e fica indisponível por cerca de um minuto."
+  start_effect: "A máquina liga e os serviços sobem conforme configurado."
+  wrong_state: "{emoji} A instância está **{current}**, e esta ação só se aplica quando está **{expected}**."
+  self_hosted: "{emoji} O Relay roda **nesta** instância. Depois de parar, o bot fica fora do ar e só o console da OCI religa."
+  ephemeral_ip: "{emoji} Se o IP público for efêmero, ele muda ao religar. Atual: {ip}"
+  confirm_within: "Confirme em até {seconds}s."
+  sent: "{emoji} {action} enviado para a OCI."
+  transition: "A instância vai para **{state}**. A transição leva alguns instantes; confira com /status."
+  request_id: "opc-request-id: {id}"
+
+confirmation:
+  confirm: "✅ Confirmar"
+  cancel: "✖️ Cancelar"
+  confirmed: "Confirmado."
+  cancelled: "Cancelado."
+  cancelled_message: "✖️ Ação cancelada."
+  unauthorised: "Não autorizado."
+  unrecognised: "Botão não reconhecido."
+  no_executor: "⚠️ Ação confirmada, mas não há executor registrado."
+  failed: "🔴 A ação falhou: {reason}"
+  refused:
+    desconhecida: "Confirmação não encontrada."
+    expirada: "Confirmação expirada. Repita o comando."
+    outro_ator: "Só quem pediu a ação pode confirmá-la."
+    ja_resolvida: "Esta confirmação já foi respondida."
+
+language:
+  name: "Português (Brasil)"
+  title: "🌐 Idioma"
+  current: "Idioma atual: {language}"
+  available: "Disponíveis"
+  how_to: "Envie /language <código> para trocar. Exemplo: /language {example}"
+  unknown: "Idioma desconhecido: {language}. Disponíveis: {available}"
+  changed: "Idioma alterado para {language}."
+
+shape:
+  title: "📐 Shape"
+  shape: "Shape"
+  ocpu: "OCPU"
+  memory: "Memória"
+  flex_note: "Shapes Flex permitem alterar OCPU e memória."
+  fixed_note: "Este shape tem configuração fixa."
+
+uptime:
+  title: "⏱️ Tempo no ar"
+  up_for: "No ar há"
+  booted: "Ligada em"
+
+failed:
+  title: "⚙️ Unidades em falha"
+  none: "Nenhuma unidade em falha."
+  count: "{count} em falha"
+
+sessions:
+  title: "🔐 Sessões ativas"
+  none: "Nenhum usuário conectado."
+  user: "Usuário"
+  from_host: "De"
+  since: "Desde"
+  terminal: "Terminal"
+
+container:
+  title: "🐳 Container"
+  usage: "Informe um nome: /container <nome>"
+  not_found: "Container não encontrado: {name}"
+  cpu: "CPU"
+  memory: "Memória"
+  status: "Estado"
+
+docker_logs:
+  title: "📄 Logs do container"
+  usage: "Informe um nome: /docker_logs <nome>"
+  empty: "Sem saída de log."
+  truncated: "Mostrando as últimas {count} linhas."

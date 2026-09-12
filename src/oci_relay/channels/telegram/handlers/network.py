@@ -2,51 +2,61 @@
 
 import oci
 
+from ....i18n import t
 from ....oci import network
 from .. import formatter as fmt
 
+_LIMITE_REGRAS = 15
+
 
 async def handle(client, token: str, chat_id: int,
-                 actor_id: int | None = None):
+                 actor_id: int | None = None, args: str = ""):
     """Envia a configuração de rede da instância vista pela OCI."""
     from ..adapter import tg_send_text
+
+    cabecalho = fmt.cabecalho(t("network.title"))
 
     try:
         cfg = await network.get_network_config()
 
         if not cfg:
             await tg_send_text(client, token, chat_id,
-                f"🌐 **Network**\n\n{fmt.NEUTRO} Nenhuma VNIC primária encontrada.")
+                f"{cabecalho}\n\n{fmt.NEUTRO} {t('network.no_vnic')}")
             return
 
         entradas = cfg["entradas"]
         abertas = [r for r in entradas if r["aberta"]]
-        e_exposicao = fmt.AVISO if abertas else fmt.OK
+        tipo = (t("network.public_subnet") if cfg["subnet"]["publica"]
+                else t("network.private_subnet"))
 
         partes = [
-            fmt.titulo("🌐", "Network"),
+            cabecalho,
             "",
             fmt.tabela([
-                ("VCN", f"{cfg['vcn']['nome']}  {cfg['vcn']['cidr']}"),
-                ("Subnet", f"{cfg['subnet']['nome']}  {cfg['subnet']['cidr']}"),
-                ("Tipo", "pública" if cfg["subnet"]["publica"] else "privada"),
-                ("IP público", cfg["ips"]["publico"] or "nenhum"),
-                ("IP privado", cfg["ips"]["privado"] or "n/d"),
+                (t("network.vcn"),
+                 f"{cfg['vcn']['nome']}  {cfg['vcn']['cidr']}"),
+                (t("network.subnet"),
+                 f"{cfg['subnet']['nome']}  {cfg['subnet']['cidr']}"),
+                (t("network.kind"), tipo),
+                (t("network.public_ip"),
+                 cfg["ips"]["publico"] or t("network.no_ip")),
+                (t("network.private_ip"), cfg["ips"]["privado"] or "n/d"),
             ]),
         ]
 
         if entradas:
-            partes.append(fmt.secao(f"Entrada ({len(entradas)} regras)"))
+            partes.append(fmt.secao(t("network.ingress", count=len(entradas))))
             partes.append(fmt.bloco([
                 f"{fmt.AVISO if r['aberta'] else fmt.OK} "
                 f"{r['origem']:<18} {r['protocolo']:<6} {r['portas']}"
-                for r in entradas[:15]
+                for r in entradas[:_LIMITE_REGRAS]
             ]))
 
         partes.append(fmt.tabela([
-            ("Regras de saída", str(cfg["saidas"])),
-            ("Rotas", ", ".join(cfg["rotas"]) or "nenhuma"),
-            ("NSGs", ", ".join(cfg["nsgs"]) or "nenhum"),
+            (t("network.egress_rules"), str(cfg["saidas"])),
+            (t("network.routes"),
+             ", ".join(cfg["rotas"]) or t("network.none")),
+            (t("network.nsgs"), ", ".join(cfg["nsgs"]) or t("network.none")),
         ]))
 
         if abertas:
@@ -57,15 +67,17 @@ async def handle(client, token: str, chat_id: int,
                 else f"{r['protocolo']} {r['portas']}"
                 for r in abertas
             })
-            partes.append(
-                f"{fmt.AVISO} Aberto a qualquer origem: "
-                f"{', '.join(descricoes)}.")
+            partes.append(t("network.open_to_world", emoji=fmt.AVISO,
+                            rules=", ".join(descricoes)))
 
-        partes.append(f"Overall: {fmt.veredito(e_exposicao)}")
+        e_exposicao = fmt.AVISO if abertas else fmt.OK
+        partes.append(f"{t('common.overall')}: {fmt.veredito(e_exposicao)}")
 
         await tg_send_text(client, token, chat_id, "\n".join(partes))
     except oci.exceptions.ServiceError as e:
         await tg_send_text(client, token, chat_id,
-            f"🌐 **Network**\n\n{fmt.CRITICO} HTTP {e.status} — {e.message}")
+            f"{cabecalho}\n\n{fmt.CRITICO} "
+            + t("errors.oci_refused", status=e.status, message=e.message))
     except Exception as e:
-        await tg_send_text(client, token, chat_id, f"Erro ao obter rede: {e}")
+        await tg_send_text(client, token, chat_id,
+            t("errors.generic", subject="network", reason=e))

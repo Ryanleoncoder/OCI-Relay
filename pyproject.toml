@@ -16,6 +16,7 @@ dependencies = [
     "psutil>=6.0.0",
     "python-dotenv>=1.0.0",
     "pydantic>=2.12.5,<3.0.0",
+    "PyYAML>=6.0,<7.0",
 ]
 
 [project.scripts]
@@ -28,6 +29,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+package-data = {"oci_relay" = ["locales/*.yml"]}
 packages = [
     "oci_relay",
     "oci_relay.channels",
